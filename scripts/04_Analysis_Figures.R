@@ -7,6 +7,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # DIRECTORY NEEDS TO BE CHANGED to ./forecast_output/
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+setwd("./forecast_output")
 
 trap_all <- list.files(pattern = "ebullition_hidden_markov_forecast_alltrap_20") %>%
   map(readRDS) %>% 
@@ -187,7 +188,7 @@ null_forecasts <- trap_all_per_null %>%
 
 fig3 <- ebullition_forecasts/null_forecasts
 fig3
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE3_forecasts.tiff", width = 8, height = 10, device='tiff', dpi=100)
+ggsave(path = "./figures/", filename = "FIGURE3_forecasts.tiff", width = 8, height = 10, device='tiff', dpi=100)
 
 
 daily_variance <- trap_all %>%
@@ -237,7 +238,7 @@ season_variance <- trap_all %>%
 
 fig4 <- daily_variance/season_variance
 fig4
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE4_variance.tiff", width = 8, height = 10, device='tiff', dpi=100)
+ggsave(path = "./figures", filename = "FIGURE4_variance.tiff", width = 8, height = 10, device='tiff', dpi=100)
 
 
 # # Forecast bias figures
@@ -363,7 +364,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         legend.text = element_text(size = 16, color = "black"))
 
 paramter = (temp+AR)
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE7_paramters.tiff", width = 10, height = 5, device='tiff', dpi=100)
+ggsave(path = "./figures/", filename = "FIGURE5_paramters.tiff", width = 10, height = 5, device='tiff', dpi=100)
 
 
 
@@ -429,4 +430,4 @@ ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE7_pa
   partition = c/e
   partition
   
-  ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE6_partition.tiff", width = 8, height = 8, device='tiff', dpi=100)
+  ggsave(path = "./figures/", filename = "FIGURE6_partition.tiff", width = 8, height = 8, device='tiff', dpi=100)
