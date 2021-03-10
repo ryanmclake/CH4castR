@@ -187,7 +187,7 @@ null_forecasts <- trap_all_per_null %>%
 
 fig3 <- ebullition_forecasts/null_forecasts
 fig3
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE3_forecasts.tiff", width = 8, height = 10, device='tiff', dpi=1000)
+ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE3_forecasts.tiff", width = 8, height = 10, device='tiff', dpi=100)
 
 
 daily_variance <- trap_all %>%
@@ -237,53 +237,53 @@ season_variance <- trap_all %>%
 
 fig4 <- daily_variance/season_variance
 fig4
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE4_variance.tiff", width = 8, height = 10, device='tiff', dpi=1000)
+ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE4_variance.tiff", width = 8, height = 10, device='tiff', dpi=100)
 
 
-# Forecast bias figures
-forecast_bias_box <- ggplot(stats_all_bias, aes(x = model, y = Bias)) +
-  geom_boxplot()+
-  geom_jitter(aes(color = time), width = 0.1, size = 2)+
-  theme_bw()+
-  geom_hline(yintercept = 0, lty = "dashed")+
-  labs(title = "A: Forecast bias")+
-  ylab("Forecast bias")+
-  xlab("")+
-  coord_cartesian(ylim = c(-30,30))+
-  theme(axis.text=element_text(size=15, color = "black"),
-        axis.title=element_text(size=15, color = "black"),
-        panel.grid.major.x = element_blank(),
-        panel.grid.major.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        legend.title = element_blank(),
-        title = element_text(size = 15), legend.position = c(0.9,0.8),
-        legend.text = element_text(size = 16, color = "black"))
-
-
-ts_bias <- ggplot(stats_all_bias, aes(x = time, y = Bias, group = model)) +
-  geom_point(aes(color = model), size = 3)+
-  geom_smooth(aes(color = model),method = "loess", lwd = 2)+
-  theme_bw()+
-  geom_hline(yintercept = 0, lty = "dashed")+
-  labs(title = "B: Time series of forecast bias")+
-  ylab("Forecast bias")+
-  xlab("")+
-  coord_cartesian(ylim = c(-30,30))+
-  theme(axis.text=element_text(size=15, color = "black"),
-        axis.title=element_text(size=15, color = "black"),
-        panel.grid.major.x = element_blank(),
-        panel.grid.major.y = element_blank(),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_blank(),
-        legend.title = element_blank(),
-        title = element_text(size = 15),legend.position = c(0.7, 0.9),
-        legend.text = element_text(size = 16, color = "black"))
-
-fig5 <- forecast_bias_box/ts_bias
-fig5
-
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE5_bias.tiff", width = 8, height = 10, device='tiff', dpi=1000)
+# # Forecast bias figures
+# forecast_bias_box <- ggplot(stats_all_bias, aes(x = model, y = Bias)) +
+#   geom_boxplot()+
+#   geom_jitter(aes(color = time), width = 0.1, size = 2)+
+#   theme_bw()+
+#   geom_hline(yintercept = 0, lty = "dashed")+
+#   labs(title = "A: Forecast bias")+
+#   ylab("Forecast bias")+
+#   xlab("")+
+#   coord_cartesian(ylim = c(-30,30))+
+#   theme(axis.text=element_text(size=15, color = "black"),
+#         axis.title=element_text(size=15, color = "black"),
+#         panel.grid.major.x = element_blank(),
+#         panel.grid.major.y = element_blank(),
+#         panel.grid.minor.x = element_blank(),
+#         panel.grid.minor.y = element_blank(),
+#         legend.title = element_blank(),
+#         title = element_text(size = 15), legend.position = c(0.9,0.8),
+#         legend.text = element_text(size = 16, color = "black"))
+# 
+# 
+# ts_bias <- ggplot(stats_all_bias, aes(x = time, y = Bias, group = model)) +
+#   geom_point(aes(color = model), size = 3)+
+#   geom_smooth(aes(color = model),method = "loess", lwd = 2)+
+#   theme_bw()+
+#   geom_hline(yintercept = 0, lty = "dashed")+
+#   labs(title = "B: Time series of forecast bias")+
+#   ylab("Forecast bias")+
+#   xlab("")+
+#   coord_cartesian(ylim = c(-30,30))+
+#   theme(axis.text=element_text(size=15, color = "black"),
+#         axis.title=element_text(size=15, color = "black"),
+#         panel.grid.major.x = element_blank(),
+#         panel.grid.major.y = element_blank(),
+#         panel.grid.minor.x = element_blank(),
+#         panel.grid.minor.y = element_blank(),
+#         legend.title = element_blank(),
+#         title = element_text(size = 15),legend.position = c(0.7, 0.9),
+#         legend.text = element_text(size = 16, color = "black"))
+# 
+# fig5 <- forecast_bias_box/ts_bias
+# fig5
+# 
+# ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE5_bias.tiff", width = 8, height = 10, device='tiff', dpi=100)
 
 
 
@@ -363,7 +363,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         legend.text = element_text(size = 16, color = "black"))
 
 paramter = (temp+AR)
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE7_paramters.tiff", width = 10, height = 5, device='tiff', dpi=1000)
+ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE7_paramters.tiff", width = 10, height = 5, device='tiff', dpi=100)
 
 
 
@@ -429,4 +429,4 @@ ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE7_pa
   partition = c/e
   partition
   
-  ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE6_partition.tiff", width = 8, height = 8, device='tiff', dpi=1000)
+  ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE6_partition.tiff", width = 8, height = 8, device='tiff', dpi=100)
