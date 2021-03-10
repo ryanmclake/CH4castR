@@ -1,6 +1,6 @@
-### CH4cast_v1 user guide
+# CH4cast_v1 user guide
 
-## Step 1 - DOWNLOAD CH4cast_v1 code via terminal in Rstudio
+### Step 1 - DOWNLOAD CH4cast_v1 code via terminal in Rstudio
 
 1: Open a fresh R Studio window without any existing scripts
 
@@ -23,7 +23,7 @@
       
 6: After the cloning finishes, there should be a new folder in your working directory named "CH4cast_v1"
 
-## Step 2 - Run three forecasts of CH4 ebullition rates from summer 2019
+### Step 2 - Run three forecasts of CH4 ebullition rates from summer 2019
 
 7: Navigate to the new folder called CH4cast_v1 under the "files" panel in Rstudio
 
