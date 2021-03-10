@@ -1,0 +1,34 @@
+
+model {  
+   
+   #priors===================================================
+   
+   mu2 ~ dnorm(0,5);
+   sd.pro ~ dunif(0.0001, 10000);
+   tau.pro <-  pow(sd.pro, -2);
+   phi ~ dlnorm(0,1);
+   omega ~ dnorm(0,5);
+   
+   #Informative priors on initial conditions based on first observation
+   predY[1] <- X[1];
+   Y[1] ~ dnorm(X[1], tau.obs[1]);
+   
+   #end priors===============================================
+   
+   for(i in 2:N) {
+      
+      #process model=============================================
+      
+      predX[i] <- mu2 + phi*X[i-1] + omega*D[i];
+      X[i] ~ dlnorm(predX[i],tau.pro);
+      
+      #end of process model======================================
+      
+      #data model================================================
+      
+      Y[i] ~ dlnorm(X[i], tau.obs[i]); # Observation variation
+      D[i] ~ dnorm(D_mean[i],tau.pre[i]); # Covariate variation 
+      
+      #end of data model=========================================
+   }
+}

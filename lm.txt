@@ -1,0 +1,14 @@
+
+model {  
+   mu ~ dnorm(0,1);  # intercet
+   beta ~ dnorm(0,1); # cat temp paramter
+   sd.pro ~ dunif(0.00001, 10000);
+   tau.pro <-  pow(sd.pro, -2)
+   
+   for(i in 2:N) {
+      predX[i] <- mu + C[i]*beta; 
+      X[i] ~ dnorm(predX[i],tau.pro); # Process variation
+      Y[i] ~ dnorm(X[i], tau.obs[i]); # Observation variation
+      C[i] ~ dnorm(C_mean[i],tau.pre[i]); # Covariate variation
+   }
+}  
