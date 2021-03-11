@@ -7,7 +7,7 @@
 if (!"pacman" %in% installed.packages()) install.packages("pacman")
 pacman::p_load(tidyverse,rjags,runjags,MCMCvis,lubridate,tidybayes,
                R2jags,ncdf4,reshape2,plotly,zoo,fs,modelr,aws.s3,
-               jsonlite,scales,patchwork,hydroGOF,viridis)
+               jsonlite,scales,patchwork,hydroGOF,viridis,imputeTS)
 
 ### Pull together all of the observed ebullition, hobo temperature, and catwalk temperature data from 2019
 
