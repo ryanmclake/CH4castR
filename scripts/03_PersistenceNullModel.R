@@ -11,18 +11,18 @@ f_days = 10
 
 # Dates to forecast
 # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-# dates <- c(as.Date("2019-05-27"),as.Date("2019-06-03"),as.Date("2019-06-10"),
-#            as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
-#            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
-#            as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
-#            as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
-#            as.Date("2019-09-11"),as.Date("2019-09-20"),as.Date("2019-09-27"),
-#            as.Date("2019-10-02"),as.Date("2019-10-11"),as.Date("2019-10-16"),
-#            as.Date("2019-10-23"),as.Date("2019-10-30"),as.Date("2019-11-07"))
+dates <- c(as.Date("2019-05-27"),
+           as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
+           as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
+           as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
+           as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
+           as.Date("2019-09-11"),as.Date("2019-09-20"),as.Date("2019-09-27"),
+           as.Date("2019-10-02"),as.Date("2019-10-11"),as.Date("2019-10-16"),
+           as.Date("2019-10-23"),as.Date("2019-10-30"),as.Date("2019-11-07"))
 
 
 # Dates to TEST FORECAST BY  REVIEWERS
-dates <- c(as.Date("2019-06-17"),as.Date("2019-08-19"),as.Date("2019-10-16"))
+#dates <- c(as.Date("2019-06-17"),as.Date("2019-08-19"),as.Date("2019-10-16"))
 #'Generic random walk state-space model is JAGS format.  We use this model for 
 #'both the oxygen and temperature null forecasts
 RandomWalk = "

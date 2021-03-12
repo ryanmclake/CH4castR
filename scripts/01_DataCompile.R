@@ -152,8 +152,8 @@ ebu <- read_csv("./observed/EDI_DATA_EBU_DIFF_DEPTH_2015_2019.csv") %>%
   group_by(time, Site) %>%
   summarize(log_ebu_rate = mean(Ebu_rate, na.rm = T),
             log_ebu_rate_sd = sd(Ebu_rate, na.rm = T))%>%
-  mutate(log_ebu_rate = log(log_ebu_rate))%>%
-  mutate(log_ebu_rate_sd = sqrt(log_ebu_rate_sd))%>%
+  mutate(log_ebu_rate = log_ebu_rate)%>%
+  mutate(log_ebu_rate_sd = log_ebu_rate_sd)%>%
   rename(trap_id = Site)
 
 ebu$log_ebu_rate[is.nan(as.numeric(ebu$log_ebu_rate))] <- NA

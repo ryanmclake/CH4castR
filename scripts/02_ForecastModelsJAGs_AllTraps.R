@@ -31,11 +31,11 @@ model {
    
    #priors===================================================
    
-   mu2 ~ dnorm(0,5);
+   mu2 ~ dnorm(0,1);
    sd.pro ~ dunif(0.0001, 10000);
    tau.pro <-  pow(sd.pro, -2);
    phi ~ dnorm(0,1);
-   omega ~ dnorm(0,5);
+   omega ~ dnorm(0,1);
    
    #Informative priors on initial conditions based on first observation
    predY[1] <- X[1];
@@ -63,18 +63,18 @@ model {
 ", file = model.ar2)
 
 # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-# dates <- c(as.Date("2019-05-27"),as.Date("2019-06-03"),as.Date("2019-06-10"),
-#            as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
-#            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
-#            as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
-#            as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
-#            as.Date("2019-09-11"),as.Date("2019-09-20"),as.Date("2019-09-27"),
-#            as.Date("2019-10-02"),as.Date("2019-10-11"),as.Date("2019-10-16"),
-#            as.Date("2019-10-23"),as.Date("2019-10-30"),as.Date("2019-11-07"))
+dates <- c(as.Date("2019-05-27"),
+           as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
+           as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
+           as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
+           as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
+           as.Date("2019-09-11"),as.Date("2019-09-20"),as.Date("2019-09-27"),
+           as.Date("2019-10-02"),as.Date("2019-10-11"),as.Date("2019-10-16"),
+           as.Date("2019-10-23"),as.Date("2019-10-30"),as.Date("2019-11-07"))
 
 
 # Dates to TEST FORECAST BY  REVIEWERS
-dates <- c(as.Date("2019-06-17"),as.Date("2019-08-19"),as.Date("2019-10-16"))
+#dates <- c(as.Date("2019-06-17"),as.Date("2019-08-19"),as.Date("2019-10-16"))
            
 # Sequence through the dates and the traps and execute the JAGS model
 for(s in 1:length(dates)){
@@ -290,7 +290,7 @@ for(s in 1:length(dates)){
                 lower_60 = quantile(X, 0.40),
                 var = var(X),
                 sd = sd(X),.groups = "drop")%>%
-      filter(time>=start_forecast)
+      filter(time==start_forecast)
     
     # # Save just forecast from the date of the observation + 10 days into the future
     forecast_saved_ebu <- ebu_out_forecast %>%

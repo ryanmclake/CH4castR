@@ -40,7 +40,7 @@ gelman <- ggplot(gelman_ebu_model, aes(forecast_date, mpsrf))+
   ylab("Multivariate potential scale reduction factors")+
   xlab("Forecast date")
 gelman
-ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "SI_gelman.tiff", width = 6, height = 6, device='tiff', dpi=1000)
+ggsave(path = "./figures", filename = "SI_gelman.tiff", width = 6, height = 6, device='tiff', dpi=100)
 
 
 ### Parameter estimates ###
@@ -114,26 +114,26 @@ stats_all_bias_base <- trap_all_partition %>%
   na.omit(.)%>%
   group_by(time)%>%
   filter(row_number(time) == 1) %>%
-  mutate(Bias = abs(exp(mean)) - abs(exp(log_ebu_rate)))%>%
+  mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
   mutate(model = "A: HHM forecast model")%>%
   ungroup(.)
 
 base_model_NSE <- stats_all_bias_base %>%
   select(mean,log_ebu_rate)%>%
-  summarize(NSE_model = NSE(exp(mean), exp(log_ebu_rate)))
+  summarize(NSE_model = NSE(mean, log_ebu_rate))
 
 stats_all_bias_null <- trap_null_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(time)%>%
   filter(row_number(time) == 1) %>%
-  mutate(Bias = abs(exp(mean)) - abs(exp(log_ebu_rate)))%>%
+  mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
   mutate(model = "B: Persistence null forecast model")%>%
   ungroup(.)
 
 null_model_NSE <- stats_all_bias_null %>%
   select(mean,log_ebu_rate)%>%
-  summarize(NSE_model = NSE(exp(mean), exp(log_ebu_rate)))
+  summarize(NSE_model = NSE(mean, log_ebu_rate))
 
 stats_all_bias <- bind_rows(stats_all_bias_base,stats_all_bias_null)
 
@@ -141,12 +141,12 @@ stats_all_bias <- bind_rows(stats_all_bias_base,stats_all_bias_null)
 ### visualizations of the full ebullition forecasts (Planning to be figure 3)
 ebullition_forecasts <- trap_all %>%
   #filter(days != 0)%>%
-  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
-  geom_ribbon(aes(ymin = exp(lower_80), ymax = exp(upper_80)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
+  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = lower_70, ymax = upper_70), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = lower_60, ymax = upper_60), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = log_ebu_rate, ymin = log_ebu_rate-log_ebu_rate_sd, ymax = log_ebu_rate+log_ebu_rate_sd), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
   labs(title = "A: HHM forecast model")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
@@ -164,12 +164,12 @@ ebullition_forecasts <- trap_all %>%
 
 null_forecasts <- trap_all_per_null %>%
   #filter(days != 0)%>%
-  ggplot(aes(x = time, y = exp(mean), group = forecast_date)) +
-  geom_ribbon(aes(ymin = exp(lower_80), ymax = exp(upper_80)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
+  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = lower_70, ymax = upper_70), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = lower_60, ymax = upper_60), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = log_ebu_rate, ymin = log_ebu_rate-log_ebu_rate_sd, ymax = log_ebu_rate+log_ebu_rate_sd), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
   labs(title = "B: Persistence null forecast model")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
@@ -193,7 +193,7 @@ ggsave(path = "./figures/", filename = "FIGURE3_forecasts.tiff", width = 8, heig
 
 daily_variance <- trap_all %>%
   filter(days != 0)%>%
-  ggplot(., aes(x = days, y = exp(var), group = days)) +
+  ggplot(., aes(x = days, y = var, group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
@@ -216,7 +216,7 @@ daily_variance <- trap_all %>%
 season_variance <- trap_all %>%
   filter(days != 0)%>%
   rename(`Days into future` = days)%>%
-  ggplot(., aes(x = time, y = exp(var), group = `Days into future`)) +
+  ggplot(., aes(x = time, y = var, group = `Days into future`)) +
   geom_line(aes(color = `Days into future`), size = 1)+
   theme_bw()+
   scale_color_viridis(option = "C", limits = c(1,10), 
