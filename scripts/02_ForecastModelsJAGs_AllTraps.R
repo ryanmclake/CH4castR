@@ -31,11 +31,11 @@ model {
    
    #priors===================================================
    
-   mu2 ~ dnorm(0,1);
+   mu2 ~ dnorm(0,5);
    sd.pro ~ dunif(0.0001, 10000);
    tau.pro <-  pow(sd.pro, -2);
    phi ~ dnorm(0,1);
-   omega ~ dnorm(0,1);
+   omega ~ dnorm(0,5);
    
    #Informative priors on initial conditions based on first observation
    predY[1] <- X[1];
@@ -62,8 +62,8 @@ model {
 }
 ", file = model.ar2)
 
-# Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(as.Date("2019-05-27"),
+# # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
+dates <- c(as.Date("2019-05-27"),as.Date("2019-06-03"),as.Date("2019-06-10"),
            as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
            as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
@@ -74,7 +74,14 @@ dates <- c(as.Date("2019-05-27"),
 
 
 # Dates to TEST FORECAST BY  REVIEWERS
-#dates <- c(as.Date("2019-06-17"),as.Date("2019-08-19"),as.Date("2019-10-16"))
+# dates <- c(as.Date("2019-05-27"),
+#            as.Date("2019-06-17"),
+#            as.Date("2019-07-08"),
+#            as.Date("2019-07-29"),
+#            as.Date("2019-08-19"),
+#            as.Date("2019-09-11"),
+#            as.Date("2019-10-02"),
+#            as.Date("2019-10-23"))
            
 # Sequence through the dates and the traps and execute the JAGS model
 for(s in 1:length(dates)){
@@ -83,8 +90,6 @@ for(s in 1:length(dates)){
     full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
       filter(time <= dates[s])%>%
       arrange(time)
-    
-    full_ebullition_model_alltrap_jags[1,7] <- 0.5
     
     # fill in any missing covariate data This is done using impute TS --> but other models might be better
     full_ebullition_model_alltrap_jags$water_temp_dam <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam,option = "linear")
@@ -110,8 +115,9 @@ for(s in 1:length(dates)){
     temp <- ncvar_get(nc,'temp')
     
     #prepare forecast temperatures from FLARE to be appended to the data frame recognized by jags
-    forecast_jags <- as.data.frame(cbind(time,temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
+    forecast_jags <- as.data.frame(cbind(time,temp[1:14,1:210,5], temp[1:14,1:210,6], temp[1:14,1:210,7],temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
       filter(time>=start_forecast)%>%
+      filter(time<=start_forecast+10)%>%
       melt(., id = 'time')%>%
       group_by(time)%>%
       mutate(value = as.numeric(value))%>%
@@ -119,16 +125,17 @@ for(s in 1:length(dates)){
                 water_temp_dam_sd = sd(value, na.rm = TRUE))%>%
       arrange(time)%>%
       mutate(hobo_temp = NA)%>%
-      mutate(hobo_temp_sd = 0.3)%>%
+      mutate(hobo_temp_sd = NA)%>%
       mutate(log_ebu_rate = NA)%>%
-      mutate(log_ebu_rate_sd = 1)%>%
+      mutate(log_ebu_rate_sd = NA)%>%
       select(time, hobo_temp, hobo_temp_sd, water_temp_dam, water_temp_dam_sd, log_ebu_rate, log_ebu_rate_sd)%>%
       mutate(time = as.Date(time))
   
     
     # Prepare forecast so it can be saved as an .rds file and uploaded to github
-    forecast_save_temp <- as.data.frame(cbind(time,temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
+    forecast_save_temp <- as.data.frame(cbind(time,temp[1:14,1:210,5], temp[1:14,1:210,6], temp[1:14,1:210,7],temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
       filter(time>=start_forecast)%>%
+      filter(time<=start_forecast+10)%>%
       melt(., id = 'time')%>%
       group_by(time)%>%
       mutate(value = as.numeric(value))%>%
@@ -149,6 +156,9 @@ for(s in 1:length(dates)){
     ### THIS IS THE ACTUAL JAGS MODELING PART ###
     # Append the temperature forecast from FLARE to the dataframe
     full_ebullition_model_alltrap_jags <- bind_rows(full_ebullition_model_alltrap_jags, forecast_jags[-1,])
+    full_ebullition_model_alltrap_jags$hobo_temp_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$hobo_temp_sd,option = "linear")
+    full_ebullition_model_alltrap_jags$log_ebu_rate_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$log_ebu_rate_sd,option = "linear")
+    
     
     jags.data.lm = list(X = full_ebullition_model_alltrap_jags$hobo_temp, 
                         tau.obs = 1/(full_ebullition_model_alltrap_jags$hobo_temp_sd ^ 2),
@@ -271,26 +281,7 @@ for(s in 1:length(dates)){
                 var = var(Y),
                 sd = sd(Y),.groups = "drop")
     
-    ebu_out_IC<- jags.out %>%
-      spread_draws(X[day]) %>%
-      filter(.chain == 1) %>%
-      rename(ensemble = .iteration) %>%
-      mutate(time = full_ebullition_model_alltrap_jags$time[day]) %>%
-      ungroup() %>%
-      select(time, X, ensemble)%>%
-      group_by(time) %>% 
-      summarise(mean = mean(X),
-                upper_90 = quantile(X, 0.90),
-                lower_90 = quantile(X, 0.10),
-                upper_80 = quantile(X, 0.80),
-                lower_80 = quantile(X, 0.20),
-                upper_70 = quantile(X, 0.70),
-                lower_70 = quantile(X, 0.30),
-                upper_60 = quantile(X, 0.60),
-                lower_60 = quantile(X, 0.40),
-                var = var(X),
-                sd = sd(X),.groups = "drop")%>%
-      filter(time==start_forecast)
+    ebu_out_IC <- ebu_out_forecast %>% filter(time==start_forecast)
     
     # # Save just forecast from the date of the observation + 10 days into the future
     forecast_saved_ebu <- ebu_out_forecast %>%
@@ -346,7 +337,6 @@ for(s in 1:length(dates)){
         FLARE_temp <- forecast_save_temp$mean
       }else{
         FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
-
       }
 
        if(hold_IC){

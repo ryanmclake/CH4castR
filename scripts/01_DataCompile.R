@@ -7,7 +7,7 @@
 if (!"pacman" %in% installed.packages()) install.packages("pacman")
 pacman::p_load(tidyverse,rjags,runjags,MCMCvis,lubridate,tidybayes,
                R2jags,ncdf4,reshape2,plotly,zoo,fs,modelr,aws.s3,
-               jsonlite,scales,patchwork,hydroGOF,viridis,imputeTS)
+               jsonlite,scales,patchwork,hydroGOF,viridis,imputeTS, devtools)
 
 ### Pull together all of the observed ebullition, hobo temperature, and catwalk temperature data from 2019
 
@@ -89,97 +89,62 @@ ctd_sum <- ctd %>% select(Reservoir, Date, Site, Depth_m, Temp_C)%>%
          time != "2017-10-08")
 
 #make an observed damn site water temp column.
-water_temp <- rbind(ctd_sum, cat_sum)
+water_temp <- rbind(ctd_sum, cat_sum)%>%
+  filter(time < "2019-11-08")
 
 # Pull in hobo data 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-hobo_t1 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
-  filter(Site == "T1e1") %>%
+hobo <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
   dplyr::rename(time = DateTime)%>%
   dplyr::mutate(time = as_date(time))%>%
   dplyr::group_by(time) %>%
-  dplyr::summarize(temperature = mean(Sed_temp, na.rm = TRUE),
-                   temperature_sd = sd(Sed_temp, na.rm = TRUE))
-temp_model_t1 <- left_join(hobo_t1,water_temp, by = "time")%>%
-  rename(hobo_temp = temperature, hobo_temp_sd = temperature_sd)%>%
-  mutate(trap_id = "T1e1")
-
-# Hobo data for Trap 2
-hobo_t2 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
-  filter(Site == "T1e2") %>%
-  dplyr::rename(time = DateTime)%>%
-  dplyr::mutate(time = as_date(time))%>%
-  dplyr::group_by(time) %>%
-  dplyr::summarize(temperature = mean(Sed_temp, na.rm = TRUE),
-                   temperature_sd = sd(Sed_temp, na.rm = TRUE))
-temp_model_t2 <- left_join(hobo_t2,water_temp, by = "time")%>%
-  rename(hobo_temp = temperature, hobo_temp_sd = temperature_sd)%>%
-  mutate(trap_id = "T1e2")
-
-# Hobo data for Trap 3
-hobo_t3 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
-  filter(Site == "T1e3") %>%
-  dplyr::rename(time = DateTime)%>%
-  dplyr::mutate(time = as_date(time))%>%
-  dplyr::group_by(time) %>%
-  dplyr::summarize(temperature = mean(Sed_temp, na.rm = TRUE),
-                   temperature_sd = sd(Sed_temp, na.rm = TRUE))
-temp_model_t3 <- left_join(hobo_t3,water_temp, by = "time")%>%
-  rename(hobo_temp = temperature, hobo_temp_sd = temperature_sd)%>%
-  mutate(trap_id = "T1e3")
-
-# Hobo data for Trap 4
-hobo_t4 <- readRDS("./observed/EDI_DATA_HOBO_TEMPS_2017_2019.rds")%>%
-  filter(Site == "T1e4") %>%
-  dplyr::rename(time = DateTime)%>%
-  dplyr::mutate(time = as_date(time))%>%
-  dplyr::group_by(time) %>%
-  dplyr::summarize(temperature = mean(Sed_temp, na.rm = TRUE),
-                   temperature_sd = sd(Sed_temp, na.rm = TRUE))
-temp_model_t4 <- left_join(hobo_t4,water_temp, by = "time")%>%
-  rename(hobo_temp = temperature, hobo_temp_sd = temperature_sd)%>%
-  mutate(trap_id = "T1e4")
-temp_all <- rbind(temp_model_t1, temp_model_t2, temp_model_t3, temp_model_t4)
+  dplyr::summarize(temperature_sd = sd(Sed_temp, na.rm = T),
+                   temperature = mean(Sed_temp, na.rm = T))%>%
+  select(time, temperature, temperature_sd)%>%
+  filter(time > "2017-05-06")
 
 
 # Read in the observed ebullition throughout the entire ebullition sampling period --> 2017 to 2019
 # importantly, we are specifically selecting traps JUST FROM Transect 1
 # Refer to Mcclure et al., 2020 for more information in regard to the other Transects in the reservoir
+
 ebu <- read_csv("./observed/EDI_DATA_EBU_DIFF_DEPTH_2015_2019.csv") %>%
   rename(time = DateTime) %>%
   filter(Transect == "T1")%>%
   select(time, Site, Ebu_rate)%>%
-  group_by(time, Site) %>%
-  summarize(log_ebu_rate = mean(Ebu_rate, na.rm = T),
-            log_ebu_rate_sd = sd(Ebu_rate, na.rm = T))%>%
-  mutate(log_ebu_rate = log_ebu_rate)%>%
-  mutate(log_ebu_rate_sd = log_ebu_rate_sd)%>%
-  rename(trap_id = Site)
+  mutate(log_ebu_rate = log(Ebu_rate),
+         log_ebu_rate = ifelse(is.infinite(log_ebu_rate),NA,log_ebu_rate))%>%
+  group_by(time) %>%
+  summarize(log_ebu_rate_sd = sd(log_ebu_rate, na.rm = T),
+            log_ebu_rate = mean(log_ebu_rate, na.rm = T))%>%
+  select(time, log_ebu_rate, log_ebu_rate_sd)
 
-ebu$log_ebu_rate[is.nan(as.numeric(ebu$log_ebu_rate))] <- NA
-ebu$log_ebu_rate[ebu$log_ebu_rate == "-Inf"] <- NA
-ebu$log_ebu_rate_sd[is.nan(as.numeric(ebu$log_ebu_rate_sd))] <- NA
-ebu$log_ebu_rate_sd[ebu$log_ebu_rate_sd == "-Inf"] <- NA
+
+time <- as.data.frame(seq(from = as.Date("2017-05-07"), to = as.Date("2019-11-07"), by = "day"))%>%
+  rename(time = `seq(from = as.Date(\"2017-05-07\"), to = as.Date(\"2019-11-07\"), by = \"day\")`)
+
 
 # Join with all previous data and make the object that will feed directly into the Jags model
-full_ebullition_model_17 <- full_join(temp_all, ebu, by = c("trap_id", "time")) %>%
+full_ebullition_model <- full_join(time, hobo, by = "time") %>%
+  full_join(., water_temp, by = "time")%>%
+  full_join(., ebu, by = "time")%>%
+  mutate(year = year(time))%>%
+  filter(year != "2018")
+  
+full_ebullition_model_17 <- full_ebullition_model%>%
   filter(time >= "2017-05-07") %>%
-  filter(time <= "2017-10-23") %>%
+  filter(time <= "2017-10-30") %>%
   rename(water_temp_dam = mean) %>%
   rename(water_temp_dam_sd = mean_sd)
 
-full_ebullition_model_19 <- full_join(temp_all, ebu, by = c("trap_id", "time")) %>%
+full_ebullition_model_19 <- full_ebullition_model%>%
   filter(time >= "2019-05-27") %>%
   filter(time <= "2019-11-07") %>%
   rename(water_temp_dam = mean) %>%
   rename(water_temp_dam_sd = mean_sd)
 
-full_ebullition_model <- bind_rows(full_ebullition_model_17, full_ebullition_model_19)
-
-full_ebullition_model_alltrap <- full_ebullition_model%>%
-  group_by(time)%>%
-  summarise_all(funs(mean), na.rm = TRUE)%>%
-  select(-trap_id)
+full_ebullition_model_alltrap <- bind_rows(full_ebullition_model_17, full_ebullition_model_19)%>%
+  rename(hobo_temp = temperature, hobo_temp_sd = temperature_sd)
 
 full_ebullition_model_alltrap$water_temp_dam[is.nan(as.numeric(full_ebullition_model_alltrap$water_temp_dam))] <- NA
 full_ebullition_model_alltrap$water_temp_dam_sd[is.nan(as.numeric(full_ebullition_model_alltrap$water_temp_dam_sd))] <- NA
@@ -187,8 +152,6 @@ full_ebullition_model_alltrap$log_ebu_rate[is.nan(as.numeric(full_ebullition_mod
 full_ebullition_model_alltrap$log_ebu_rate_sd[is.nan(as.numeric(full_ebullition_model_alltrap$log_ebu_rate_sd))] <- NA
 full_ebullition_model_alltrap$hobo_temp[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp))] <- NA
 full_ebullition_model_alltrap$hobo_temp_sd[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp_sd))] <- NA
-
-full_ebullition_model_alltrap$log_ebu_rate[full_ebullition_model_alltrap$log_ebu_rate == "-Inf"] <- NA
 
 # Perform a check standard to confirm the Upstream Temps closely match the Hobo Temps
 a <- ggplot(full_ebullition_model_alltrap, aes(water_temp_dam, hobo_temp))+

@@ -7,18 +7,19 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # DIRECTORY NEEDS TO BE CHANGED to ./forecast_output/
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-setwd("./forecast_output")
 
-trap_all <- list.files(pattern = "ebullition_hidden_markov_forecast_alltrap_20") %>%
-  map(readRDS) %>% 
+data_path <- "./forecast_output"
+
+trap_all <- list.files(data_path, pattern = "ebullition_hidden_markov_forecast_alltrap_20")%>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist(fill = T)%>%
   group_by(forecast_date)%>%
   mutate(days = seq_along(time))%>%
   group_by(forecast_date)%>%
   mutate(days = days-1)
 
-trap_all_per_null <- list.files(pattern = "ebullition_null_persistence_forecast_alltrap_") %>%
-  map(readRDS) %>% 
+trap_all_per_null <- list.files(data_path, pattern = "ebullition_null_persistence_forecast_alltrap_")%>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist() %>%
   group_by(forecast_date)%>%
   mutate(days = seq_along(time))%>%
@@ -27,8 +28,8 @@ trap_all_per_null <- list.files(pattern = "ebullition_null_persistence_forecast_
 
 trap_compare <- left_join(trap_all, trap_all_per_null, by = "time")
 
-gelman_ebu_model <- list.files(pattern = "ebu_model_gelman_diagnostics_") %>%
-  map(readRDS) %>% 
+gelman_ebu_model <- list.files(data_path, pattern = "ebu_model_gelman_diagnostics_") %>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()
 
 
@@ -40,12 +41,12 @@ gelman <- ggplot(gelman_ebu_model, aes(forecast_date, mpsrf))+
   ylab("Multivariate potential scale reduction factors")+
   xlab("Forecast date")
 gelman
-ggsave(path = "./figures", filename = "SI_gelman.tiff", width = 6, height = 6, device='tiff', dpi=100)
+ggsave(path = ".", filename = "SI_gelman.tiff", width = 6, height = 6, device='tiff', dpi=100)
 
 
 ### Parameter estimates ###
-trap_all_parameters <- list.files(pattern = "ebullition_parameters_") %>%
-  map(readRDS) %>% 
+trap_all_parameters <- list.files(data_path, pattern = "ebullition_parameters_") %>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist() %>%
   group_by(forecast_date)%>%
   summarize(mean_process = mean(sd.pro),
@@ -60,26 +61,26 @@ trap_all_parameters <- list.files(pattern = "ebullition_parameters_") %>%
 
 ##### UNCERTAINTY PARTITIONING DATA ####
 
-trap_all_IC <- list.files(pattern = "initial_condition_") %>%
-  map(readRDS) %>% 
+trap_all_IC <- list.files(data_path, pattern = "initial_condition_") %>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()%>%
   select(time, forecast_date, var)%>%
   rename(var_ic = var)
 
-trap_all_PRO <- list.files(pattern = "model_process_") %>%
-  map(readRDS) %>% 
+trap_all_PRO <- list.files(data_path, pattern = "model_process_") %>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()%>%
   select(time, forecast_date, var)%>%
   rename(var_pro = var)
 
-trap_all_DRI <- list.files(pattern = "driver_data_") %>%
-  map(readRDS) %>% 
+trap_all_DRI <- list.files(data_path, pattern = "driver_data_") %>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()%>%
   select(time, forecast_date, var)%>%
   rename(var_dri = var)
 
-trap_all_PAR <- list.files(pattern = "model_parameter_") %>%
-  map(readRDS) %>% 
+trap_all_PAR <- list.files(data_path, pattern = "model_parameter_") %>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()%>%
   select(time, forecast_date, var)%>%
   rename(var_par = var)
@@ -142,6 +143,7 @@ stats_all_bias <- bind_rows(stats_all_bias_base,stats_all_bias_null)
 ebullition_forecasts <- trap_all %>%
   #filter(days != 0)%>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = lower_70, ymax = upper_70), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = lower_60, ymax = upper_60), alpha = 0.2, fill = "midnightblue") +
@@ -151,7 +153,7 @@ ebullition_forecasts <- trap_all %>%
   labs(title = "A: HHM forecast model")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")), ylim = c(0,300))+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")), ylim = c(-10,10))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -165,6 +167,7 @@ ebullition_forecasts <- trap_all %>%
 null_forecasts <- trap_all_per_null %>%
   #filter(days != 0)%>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = lower_70, ymax = upper_70), alpha = 0.2, fill = "midnightblue") +
   geom_ribbon(aes(ymin = lower_60, ymax = upper_60), alpha = 0.2, fill = "midnightblue") +
@@ -174,7 +177,7 @@ null_forecasts <- trap_all_per_null %>%
   labs(title = "B: Persistence null forecast model")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")), ylim = c(0,300))+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")), ylim = c(-10,10))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -188,11 +191,10 @@ null_forecasts <- trap_all_per_null %>%
 
 fig3 <- ebullition_forecasts/null_forecasts
 fig3
-ggsave(path = "./figures/", filename = "FIGURE3_forecasts.tiff", width = 8, height = 10, device='tiff', dpi=100)
+ggsave(path = ".", filename = "FIGURE3_forecasts.tiff", width = 8, height = 10, device='tiff', dpi=100)
 
 
 daily_variance <- trap_all %>%
-  filter(days != 0)%>%
   ggplot(., aes(x = days, y = var, group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
@@ -200,9 +202,9 @@ daily_variance <- trap_all %>%
   labs(title = "A: Daily HHM forecast model uncertainty")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("Days into future")+
-  scale_x_continuous(limits = c(0,11), 
-                   breaks = c(1,2,3,4,5,6,7,8,9,10), 
-                   labels = c("1","2","3","4", "5", "6", "7", "8","9","10"))+
+  scale_x_continuous(limits = c(-1,11), 
+                   breaks = c(0,1,2,3,4,5,6,7,8,9,10), 
+                   labels = c("0", "1","2","3","4", "5", "6", "7", "8","9","10"))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -213,17 +215,18 @@ daily_variance <- trap_all %>%
         title = element_text(size = 15),legend.position = c(0.1, 0.8),
         legend.text = element_text(size = 16, color = "black"))
 
+
 season_variance <- trap_all %>%
-  filter(days != 0)%>%
   rename(`Days into future` = days)%>%
   ggplot(., aes(x = time, y = var, group = `Days into future`)) +
   geom_line(aes(color = `Days into future`), size = 1)+
+  geom_line(aes(x = time, y = var, group = forecast_date), size = 0.5)+
   theme_bw()+
-  scale_color_viridis(option = "C", limits = c(1,10), 
-                      breaks = c(1,2,3,4,5,6,7,8,9,10),
+  scale_color_viridis(option = "C", limits = c(0,10), 
+                      breaks = c(0,1,2,3,4,5,6,7,8,9,10),
                       guide = guide_colourbar(barwidth = 10, barheight = 0.5, direction = "horizontal"))+
-  labs(title = "B: HHM forecast model uncertainty across forecast season")+
-  ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  labs(title = "HHM forecast model uncertainty across forecast season")+
+  ylab(expression(paste("Forecast variance ln(mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
@@ -232,13 +235,13 @@ season_variance <- trap_all %>%
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
         legend.title = element_text(size=15, color = "black"),
-        title = element_text(size = 15),legend.position = c(0.5, 0.9),
+        title = element_text(size = 15),legend.position = c(0.6, 0.9),
         legend.text = element_text(size = 16, color = "black"))
 
 
-fig4 <- daily_variance/season_variance
+fig4 <- season_variance
 fig4
-ggsave(path = "./figures", filename = "FIGURE4_variance.tiff", width = 8, height = 10, device='tiff', dpi=100)
+ggsave(path = ".", filename = "FIGURE4_variance.tiff", width = 8, height = 8, device='tiff', dpi=100)
 
 
 # # Forecast bias figures
@@ -364,7 +367,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         legend.text = element_text(size = 16, color = "black"))
 
 paramter = (temp+AR)
-ggsave(path = "./figures/", filename = "FIGURE5_paramters.tiff", width = 10, height = 5, device='tiff', dpi=100)
+ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 5, device='tiff', dpi=100)
 
 
 
@@ -430,4 +433,4 @@ ggsave(path = "./figures/", filename = "FIGURE5_paramters.tiff", width = 10, hei
   partition = c/e
   partition
   
-  ggsave(path = "./figures/", filename = "FIGURE6_partition.tiff", width = 8, height = 8, device='tiff', dpi=100)
+  ggsave(path = ".", filename = "FIGURE6_partition.tiff", width = 8, height = 8, device='tiff', dpi=100)
