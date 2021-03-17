@@ -366,8 +366,8 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-paramter = (temp+AR)
-ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 5, device='tiff', dpi=100)
+paramter = (temp+AR)/(intercept+process)
+ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10, device='tiff', dpi=100)
 
 
 
@@ -394,7 +394,7 @@ ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 5, 
     geom_boxplot(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
     theme_bw()+
-    labs(title = "C: Aggregated uncertatinty sources during forecast season")+
+    labs(title = "B: Aggregated uncertatinty sources during forecast season")+
     ylab("Proportion to total variance")+
     xlab("Source of uncertainty")+
     theme(axis.text=element_text(size=15, color = "black"),

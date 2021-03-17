@@ -31,4 +31,5 @@ model {
       
       #end of data model=========================================
    }
+   IC_forecast <- X[N]
 }

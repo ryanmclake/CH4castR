@@ -59,6 +59,7 @@ model {
       
       #end of data model=========================================
    }
+   IC_forecast <- X[N]
 }
 ", file = model.ar2)
 
@@ -89,6 +90,7 @@ for(s in 1:length(dates)){
     # Select site and forecast date (#hashed out lines are for testing purposes)
     full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
       filter(time <= dates[s])%>%
+      #filter(time <= as.Date("2019-07-01"))%>%
       arrange(time)
     
     # fill in any missing covariate data This is done using impute TS --> but other models might be better
@@ -223,7 +225,7 @@ for(s in 1:length(dates)){
                         tau.pre = 1/(full_ebullition_model_alltrap_jags$forecast_temp_sd ^ 2))
     
     # Specify the parameters of interest from the model
-    jags.params.ar = c("sd.pro", "mu2", "phi", "omega", "X", "Y", "D")
+    jags.params.ar = c("sd.pro", "mu2", "phi", "omega", "X", "Y", "D", "IC_forecast")
     
     #Initialize parameters 
     nchain = 3
@@ -280,8 +282,7 @@ for(s in 1:length(dates)){
                 lower_60 = quantile(Y, 0.40),
                 var = var(Y),
                 sd = sd(Y),.groups = "drop")
-    
-    ebu_out_IC <- ebu_out_forecast %>% filter(time==start_forecast)
+
     
     # # Save just forecast from the date of the observation + 10 days into the future
     forecast_saved_ebu <- ebu_out_forecast %>%
@@ -292,12 +293,12 @@ for(s in 1:length(dates)){
     # Extract the parameter esimates from the ebullition model run for dates[s] and traps[h]
     ########################################################################################
     ebu_out_parms <- jags.out %>%
-      spread_draws(sd.pro, mu2, phi, omega) %>%
+      spread_draws(sd.pro, mu2, phi, omega, IC_forecast) %>%
       filter(.chain == 1) %>%
       rename(ensemble = .iteration) %>%
       mutate(forecast_date = start_forecast)%>%
       ungroup()%>%
-      select(forecast_date, sd.pro, mu2, phi, omega)
+      select(forecast_date, sd.pro, mu2, phi, omega, IC_forecast)
     saveRDS(ebu_out_parms, paste0("./forecast_output/ebullition_parameters_",dates[s],".rds"))
     #######################################################################################
     
@@ -340,9 +341,9 @@ for(s in 1:length(dates)){
       }
 
        if(hold_IC){
-         latent_ebu <- forecast_saved_ebu$mean
+         latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
        }else{
-         latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+         latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
        }
 
       # This is the actual equation that is being run for the ebullition model
@@ -405,9 +406,9 @@ for(s in 1:length(dates)){
       }
 
       if(hold_IC){
-        latent_ebu <- forecast_saved_ebu$mean
+        latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
       }else{
-        latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+        latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
       }
 
       # This is the actual equation that is being run for the ebullition model
@@ -470,9 +471,9 @@ for(s in 1:length(dates)){
       }
 
       if(hold_IC){
-        latent_ebu <- forecast_saved_ebu$mean
+        latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
       }else{
-        latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+        latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
       }
 
       # This is the actual equation that is being run for the ebullition model
@@ -535,11 +536,11 @@ for(s in 1:length(dates)){
       }
 
       if(hold_IC){
-        latent_ebu <- forecast_saved_ebu$mean
+        latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
       }else{
-        latent_ebu <- rnorm(11, ebu_out_IC$mean, ebu_out_IC$sd)
+        latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
       }
-
+      
       # This is the actual equation that is being run for the ebullition model
 
       output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
