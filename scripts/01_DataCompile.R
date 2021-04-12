@@ -11,6 +11,43 @@ pacman::p_load(tidyverse,rjags,runjags,MCMCvis,lubridate,tidybayes,
 
 ### Pull together all of the observed ebullition, hobo temperature, and catwalk temperature data from 2019
 
+inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/389/5/3d1866fecfb8e17dc902c76436239431" 
+infile1 <- tempfile()
+try(download.file(inUrl1,infile1,method="curl"))
+if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
+
+
+met <-read.csv(infile1,header=F ,skip=1,sep=",",col.names=c("Site","Reservoir","DateTime","Record","CR3000_Batt_V",     
+                 "CR3000Panel_temp_C","PAR_Average_umol_s_m2","PAR_Total_mmol_m2","BP_Average_kPa","AirTemp_Average_C",     
+                 "RH_percent","Rain_Total_mm","WindSpeed_Average_m_s","WindDir_degrees","ShortwaveRadiationUp_Average_W_m2",     
+                 "ShortwaveRadiationDown_Average_W_m2","InfaredRadiationUp_Average_W_m2","InfaredRadiationDown_Average_W_m2",     
+                 "Albedo_Average_W_m2","Flag_PAR_Average_umol_s_m2","Note_PAR_Average_umol_s_m2","Flag_PAR_Total_mmol_m2",     
+                 "Note_PAR_Total_mmol_m2","Flag_BP_Average_kPa","Note_BP_Average_kPa","Flag_AirTemp_Average_C",     
+                 "Note_AirTemp_Average_C","Flag_RH_percent","Note_RH_percent","Flag_Rain_Total_mm",     
+                 "Note_Rain_Total_mm","Flag_WindSpeed_Average_m_s","Note_WindSpeed_Average_m_s","Flag_WindDir_degrees",     
+                 "Note_WindDir_degrees","Flag_ShortwaveRadiationUp_Average_W_m2","Note_ShortwaveRadiationUp_Average_W_m2",     
+                 "Flag_ShortwaveRadiationDown_Average_W_m2","Note_ShortwaveRadiationDown_Average_W_m2",     
+                 "Flag_InfaredRadiationUp_Average_W_m2","Note_InfaredRadiationUp_Average_W_m2","Flag_InfaredRadiationDown_Average_W_m2",     
+                 "Note_InfaredRadiationDown_Average_W_m2","Flag_Albedo_Average_W_m2","Note_Albedo_Average_W_m2"), check.names=TRUE)
+
+unlink(infile1)
+
+met_sum <- met %>%
+  select(DateTime, BP_Average_kPa, AirTemp_Average_C, WindSpeed_Average_m_s) %>%
+  rename(time = DateTime)%>%
+  mutate(time = as_date(time))%>%
+  group_by(time)%>%
+  summarise(daily_bp = mean(BP_Average_kPa),
+            daily_bp_sd = sd(BP_Average_kPa),
+            daily_temp = mean(AirTemp_Average_C),
+            daily_temp_sd = sd(AirTemp_Average_C),
+            daily_wind = mean(WindSpeed_Average_m_s),
+            daily_wind_sd = sd(WindSpeed_Average_m_s))%>%
+  mutate(diff_bp = daily_bp-lag(daily_bp))%>%
+  filter(time >= "2017-05-01")%>%
+  filter(time <="2020-11-07")%>%
+  select(time, daily_temp, daily_temp_sd, daily_wind, daily_wind_sd, diff_bp)
+
 # Read in the catwalk data directly from EDI and aggregate it to match the depths between 
 # 2 and 3 meters from site 50 in FCR
 # for more information on the catwalk data in EDI refer to this link:
@@ -125,9 +162,10 @@ time <- as.data.frame(seq(from = as.Date("2017-05-07"), to = as.Date("2019-11-07
 
 
 # Join with all previous data and make the object that will feed directly into the Jags model
-full_ebullition_model <- full_join(time, hobo, by = "time") %>%
-  full_join(., water_temp, by = "time")%>%
-  full_join(., ebu, by = "time")%>%
+full_ebullition_model <- left_join(time, hobo, by = "time") %>%
+  left_join(., met_sum, by = "time")%>%
+  left_join(., water_temp, by = "time")%>%
+  left_join(., ebu, by = "time")%>%
   mutate(year = year(time))%>%
   filter(year != "2018")
   
@@ -154,7 +192,7 @@ full_ebullition_model_alltrap$hobo_temp[is.nan(as.numeric(full_ebullition_model_
 full_ebullition_model_alltrap$hobo_temp_sd[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp_sd))] <- NA
 
 # Perform a check standard to confirm the Upstream Temps closely match the Hobo Temps
-a <- ggplot(full_ebullition_model_alltrap, aes(water_temp_dam, hobo_temp))+
+a <- ggplot(full_ebullition_model_alltrap, aes(daily_temp, hobo_temp))+
   geom_point()+
   geom_smooth(method = "lm")
 

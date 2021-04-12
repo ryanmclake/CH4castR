@@ -10,7 +10,7 @@
 
 data_path <- "./forecast_output"
 
-trap_all <- list.files(data_path, pattern = "ebullition_hidden_markov_forecast_alltrap_20")%>%
+trap_all <- list.files(data_path, pattern = "ebullition_predictive_interval_forecast_alltrap_20")%>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist(fill = T)%>%
   group_by(forecast_date)%>%
@@ -34,7 +34,16 @@ trap_all_per_null <- list.files(data_path, pattern = "ebullition_null_persistenc
   group_by(forecast_date)%>%
   mutate(days = days-1)
 
+trap_all_noaa <- list.files(data_path, pattern = "noaa_ebullition_predictive_interval_forecast_alltrap_20")%>%
+  map(~ readRDS(file.path(data_path, .))) %>% 
+  data.table::rbindlist(fill = T)%>%
+  group_by(forecast_date)%>%
+  mutate(days = seq_along(time))%>%
+  group_by(forecast_date)%>%
+  mutate(days = days-1)
+
 trap_compare <- left_join(trap_all, trap_all_static, trap_all_per_null, by = "time")
+trap_compare <- left_join(trap_all_per_null, trap_all_noaa, by = "time")
 
 gelman_ebu_model <- list.files(data_path, pattern = "ebu_model_gelman_diagnostics_") %>%
   map(~ readRDS(file.path(data_path, .))) %>% 
@@ -81,7 +90,7 @@ trap_all_PRO <- list.files(data_path, pattern = "model_process_") %>%
   select(time, forecast_date, var)%>%
   rename(var_pro = var)
 
-trap_all_DRI <- list.files(data_path, pattern = "driver_data_") %>%
+trap_all_DRI <- list.files(data_path, pattern = "model_driver_") %>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()%>%
   select(time, forecast_date, var)%>%
@@ -117,20 +126,57 @@ all_partitioned_melt <- all_partitioned%>%
 trap_all_partition <- left_join(trap_all, full_ebullition_model_alltrap, by = c("time"))
 trap_static_partition <- left_join(trap_all_static, full_ebullition_model_alltrap, by = c("time"))
 trap_null_partition <- left_join(trap_all_per_null, full_ebullition_model_alltrap, by = c("time"))
-  
+#trap_noaa_partition <- left_join(trap_all_noaa, full_ebullition_model_alltrap, by = c("time"))
 
-stats_all_bias_base <- trap_all_partition %>%
+
+one_week_forecast_flare_NSE <- trap_all_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
-  group_by(time)%>%
-  filter(row_number(time) == 1) %>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  ungroup(.)%>%
+  summarize(one_week_nse_flare_model = NSE(exp(mean), exp(log_ebu_rate)))
+
+two_week_forecast_flare_NSE <- trap_all_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  ungroup(.)%>%
+  summarize(two_week_nse_flare_model = NSE(exp(mean), exp(log_ebu_rate)))
+
+one_week_forecast_static_NSE <- trap_static_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 1) %>%
+  ungroup(.)%>%
+  summarize(one_week_nse_null_model = NSE(exp(mean), exp(log_ebu_rate)))
+
+two_week_forecast_static_NSE <- trap_static_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  ungroup(.)%>%
+  summarize(two_week_nse_null_model = NSE(exp(mean), exp(log_ebu_rate)))
+
+one_week_forecast_flare_bias <- trap_null_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
   mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
-  mutate(model = "A: HHM forecast model")%>%
+  mutate(model = "C: one-week null forecast bias")%>%
   ungroup(.)
 
-HHM_model_NSE <- stats_all_bias_base %>%
-  select(mean,log_ebu_rate)%>%
-  summarize(NSE_model = NSE(mean, log_ebu_rate))
+two_week_forecast_null <- trap_null_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  ungroup(.)%>%
+  summarize(two_week_nse_null_model = NSE(mean, log_ebu_rate))
 
 stats_all_bias_static <- trap_static_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
@@ -145,37 +191,93 @@ static_model_NSE <- stats_all_bias_static %>%
   select(mean,log_ebu_rate)%>%
   summarize(NSE_model = NSE(mean, log_ebu_rate))
 
-stats_all_bias_null <- trap_null_partition %>%
+one_week_forecast_null_nse <- trap_null_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
-  group_by(time)%>%
-  filter(row_number(time) == 1) %>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  ungroup(.)%>%
+  summarize(one_week_nse_null_model = NSE(mean, log_ebu_rate))
+
+one_week_forecast_null_bias <- trap_null_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
   mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
-  mutate(model = "B: Persistence null forecast model")%>%
+  mutate(model = "C: one-week null forecast bias")%>%
   ungroup(.)
 
-null_model_NSE <- stats_all_bias_null %>%
-  select(mean,log_ebu_rate)%>%
-  summarize(NSE_model = NSE(mean, log_ebu_rate))
+two_week_forecast_null_nse <- trap_null_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  ungroup(.)%>%
+  summarize(two_week_nse_null_model = NSE(mean, log_ebu_rate))
 
-stats_all_bias <- bind_rows(stats_all_bias_base,stats_all_bias_null)
+two_week_forecast_null_bias <- trap_null_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
+  mutate(model = "D: two-week null forecast bias")%>%
+  ungroup(.)
+
+one_week_forecast_noaa <- trap_noaa_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  ungroup(.)%>%
+  summarize(one_week_nse_noaa_model = NSE(mean, log_ebu_rate))
+
+one_week_forecast_noaa_bias <- trap_noaa_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
+  mutate(model = "A: one-week NOAA forecast bias")%>%
+  ungroup(.)
+
+two_week_forecast_noaa <- trap_noaa_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  ungroup(.)%>%
+  summarize(two_week_nse_noaa_model = NSE(mean, log_ebu_rate))
+
+two_week_forecast_noaa_bias <- trap_noaa_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  mutate(Bias = abs(mean) - abs(log_ebu_rate))%>%
+  mutate(model = "B: two-week NOAA forecast bias")%>%
+  ungroup(.)
+
 
 ### FIGURES ###
 ### visualizations of the full ebullition forecasts (Planning to be figure 3)
 ebullition_forecasts <- trap_all %>%
   #filter(days != 0)%>%
-  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
-  geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = lower_80, ymax = upper_80), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = lower_70, ymax = upper_70), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = lower_60, ymax = upper_60), alpha = 0.2, fill = "midnightblue") +
+  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
+  geom_ribbon(aes(ymin = exp(lower_90), ymax = exp(upper_90)), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = exp(lower_80), ymax = exp(upper_80)), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = log_ebu_rate, ymin = log_ebu_rate-log_ebu_rate_sd, ymax = log_ebu_rate+log_ebu_rate_sd), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "A: HHM forecast model")+
-  ylab(expression(paste("Ebullition Rate ln(mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  labs(title = "A: State-space forecast model with data assimilation")+
+  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")), ylim = c(-10,10))+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -234,23 +336,51 @@ null_forecasts <- trap_all_per_null %>%
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
+noaa_forecasts <- trap_all_noaa %>%
+  #filter(days != 0)%>%
+  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
+  geom_ribbon(aes(ymin = exp(lower_90), ymax = exp(upper_90)), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = exp(lower_80), ymax = exp(upper_80)), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
+  geom_line(color = "purple4", size = 1, alpha = 0.7)+
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  theme_bw()+
+  labs(title = "C: NOAA driver data SS forecast model")+
+  ylab(expression(paste("Ebullition Rate ln(mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  xlab("")+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme(axis.text=element_text(size=15, color = "black"),
+        axis.title=element_text(size=15, color = "black"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.title = element_blank(),
+        title = element_text(size = 15),legend.position = "none",
+        legend.text = element_text(size = 16, color = "black"))
+
 
 fig3 <- (ebullition_forecasts+static_forecasts)/(null_forecasts+plot_spacer())
 fig3
 ggsave(path = ".", filename = "FIGURE3_forecasts.tiff", width = 14, height = 12, device='tiff', dpi=300)
 
 
-daily_variance <- trap_all %>%
-  ggplot(., aes(x = days, y = var, group = days)) +
+daily_variance <- trap_all_noaa %>%
+  ggplot(., aes(x = days, y = exp(var), group = days)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
-  labs(title = "A: Daily HHM forecast model uncertainty")+
+  labs(title = "A: Daily state-space forecast model uncertainty")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("Days into future")+
-  scale_x_continuous(limits = c(-1,11), 
-                   breaks = c(0,1,2,3,4,5,6,7,8,9,10), 
-                   labels = c("0", "1","2","3","4", "5", "6", "7", "8","9","10"))+
+  scale_x_continuous(limits = c(-1,17), 
+                   breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 
+                   labels = c("0", "1","2","3","4", "5", "6", "7", "8","9","10","11","12","13","14","15","16"))+
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -262,17 +392,19 @@ daily_variance <- trap_all %>%
         legend.text = element_text(size = 16, color = "black"))
 
 
-season_variance <- trap_all %>%
+season_variance <- trap_all_noaa %>%
   rename(`Days into future` = days)%>%
-  ggplot(., aes(x = time, y = var, group = `Days into future`)) +
+  ggplot(., aes(x = time, y = exp(var), group = `Days into future`)) +
   geom_line(aes(color = `Days into future`), size = 1)+
-  geom_line(aes(x = time, y = var, group = forecast_date), size = 0.5)+
+  geom_line(aes(x = time, y = exp(var), group = forecast_date), size = 0.5)+
   theme_bw()+
-  scale_color_viridis(option = "C", limits = c(0,10), 
-                      breaks = c(0,1,2,3,4,5,6,7,8,9,10),
-                      guide = guide_colourbar(barwidth = 10, barheight = 0.5, direction = "horizontal"))+
-  labs(title = "HHM forecast model uncertainty across forecast season")+
-  ylab(expression(paste("Forecast variance ln(mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  scale_color_viridis(option = "C", limits = c(0,16), 
+                      breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16),
+                      guide = guide_colourbar(barwidth = 20, barheight = 0.5, direction = "horizontal"))+
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  labs(title = "B: State-space forecast uncertainty across forecast season")+
+  ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
@@ -285,21 +417,22 @@ season_variance <- trap_all %>%
         legend.text = element_text(size = 16, color = "black"))
 
 
-fig4 <- season_variance
+fig4 <- daily_variance/season_variance
 fig4
-ggsave(path = ".", filename = "FIGURE4_variance.tiff", width = 8, height = 8, device='tiff', dpi=100)
+ggsave(path = ".", filename = "FIGURE4_variance.tiff", width = 12, height = 16, device='tiff', dpi=300)
 
 
 # # Forecast bias figures
-# forecast_bias_box <- ggplot(stats_all_bias, aes(x = model, y = Bias)) +
+# forecast_bias_box <- ggplot(stats_all_bias, aes(x = model, y = exp(Bias))) +
 #   geom_boxplot()+
 #   geom_jitter(aes(color = time), width = 0.1, size = 2)+
 #   theme_bw()+
-#   geom_hline(yintercept = 0, lty = "dashed")+
 #   labs(title = "A: Forecast bias")+
 #   ylab("Forecast bias")+
 #   xlab("")+
-#   coord_cartesian(ylim = c(-30,30))+
+#   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+#                 labels = trans_format("log10", math_format(10^.x))) +
+#   geom_hline(yintercept = 0, lty = "dashed")+
 #   theme(axis.text=element_text(size=15, color = "black"),
 #         axis.title=element_text(size=15, color = "black"),
 #         panel.grid.major.x = element_blank(),
@@ -311,7 +444,7 @@ ggsave(path = ".", filename = "FIGURE4_variance.tiff", width = 8, height = 8, de
 #         legend.text = element_text(size = 16, color = "black"))
 # 
 # 
-# ts_bias <- ggplot(stats_all_bias, aes(x = time, y = Bias, group = model)) +
+# ts_bias <- ggplot(stats_all_bias, aes(x = time, y = exp(Bias), group = model)) +
 #   geom_point(aes(color = model), size = 3)+
 #   geom_smooth(aes(color = model),method = "loess", lwd = 2)+
 #   theme_bw()+
@@ -319,7 +452,8 @@ ggsave(path = ".", filename = "FIGURE4_variance.tiff", width = 8, height = 8, de
 #   labs(title = "B: Time series of forecast bias")+
 #   ylab("Forecast bias")+
 #   xlab("")+
-#   coord_cartesian(ylim = c(-30,30))+
+#   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+#                 labels = trans_format("log10", math_format(10^.x))) +
 #   theme(axis.text=element_text(size=15, color = "black"),
 #         axis.title=element_text(size=15, color = "black"),
 #         panel.grid.major.x = element_blank(),
@@ -334,7 +468,7 @@ ggsave(path = ".", filename = "FIGURE4_variance.tiff", width = 8, height = 8, de
 # fig5
 # 
 # ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE5_bias.tiff", width = 8, height = 10, device='tiff', dpi=100)
-
+# 
 
 
 
@@ -358,11 +492,11 @@ process <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_process))
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-intercept <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_intercept)) +
-  geom_ribbon(aes(ymin = mean_intercept-sd_intercept, ymax = mean_intercept+sd_intercept), alpha = 0.2, fill = "midnightblue") +
+pressure <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_pressure)) +
+  geom_ribbon(aes(ymin = mean_pressure-sd_pressure, ymax = mean_pressure+sd_pressure), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "C: Intercept Parameter")+
+  labs(title = "C: Pressure Parameter")+
   ylab(expression(paste(beta[0])))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
@@ -398,7 +532,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
   geom_ribbon(aes(ymin = mean_temp-sd_temp, ymax = mean_temp+sd_temp), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "A: Water temperature parameter")+
+  labs(title = "A: Temperature parameter")+
   ylab(expression(paste(beta[2])))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
@@ -412,8 +546,8 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-paramter = (temp+AR)/(intercept+process)
-ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10, device='tiff', dpi=100)
+paramter = (AR+temp)/(process+plot_spacer())
+ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10, device='tiff', dpi=300)
 
 
 
@@ -464,7 +598,7 @@ ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10,
     labs(title = "B: Mean daily HHM forecast model uncertainty")+
     ylab("Proportion to total variance")+
     xlab("Days into future")+
-    xlim(c(0,10))+
+    xlim(c(0,16))+
     theme(axis.text=element_text(size=15, color = "black"),
           axis.title=element_text(size=15, color = "black"),
           panel.grid.major.x = element_blank(),
@@ -479,4 +613,4 @@ ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10,
   partition = c/e
   partition
   
-  ggsave(path = ".", filename = "FIGURE6_partition.tiff", width = 8, height = 8, device='tiff', dpi=100)
+  ggsave(path = ".", filename = "FIGURE6_partition.tiff", width = 12, height = 12, device='tiff', dpi=300)

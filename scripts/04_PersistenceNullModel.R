@@ -7,7 +7,7 @@
 set.seed(329)
 
 # number of days to forecast --> based on forecast horizon from the .nc files from FLARE
-f_days = 10
+f_days = 16
 
 # Dates to forecast
 # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured

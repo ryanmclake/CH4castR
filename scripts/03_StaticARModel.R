@@ -55,21 +55,21 @@ for(s in 1:length(dates)){
   sd_no_gaps <- full_ebullition_model_alltrap_jags$log_ebu_rate_sd[!is.na(full_ebullition_model_alltrap_jags$log_ebu_rate_sd)]
   
   # read the .nc file[h,s] from FLARE runs that correspond directly to dates ebullition from the traps were measured
-  files <- list.files("./forecast_driver/")                                          
+  files <- list.files("./forecast_flare_driver/")                                          
   start_forecast <- max(full_ebullition_model_alltrap_jags$time)         
-  start <- paste(gsub("-", "_", start_forecast))                  
-  start <-paste0(start,"_F_1")
+  start <- paste(gsub("-", "_", start_forecast))
   forecast_file <- grep(start, files, value=TRUE)
-  nc <- nc_open(paste0("./forecast_driver/",forecast_file))
+  nc <- nc_open(paste0("./forecast_flare_driver/",forecast_file))
   t <- ncvar_get(nc,'time')
   time <- as.POSIXct(t, origin = '1970-01-01 00:00.00 UTC', tz = "EST")
   time <- strftime(time, format="%Y-%m-%d")
   temp <- ncvar_get(nc,'temp')
   
   #prepare forecast temperatures from FLARE to be appended to the data frame recognized by jags
-  forecast_jags <- as.data.frame(cbind(time,temp[1:14,1:210,5], temp[1:14,1:210,6], temp[1:14,1:210,7],temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
+  #prepare forecast temperatures from FLARE to be appended to the data frame recognized by jags
+  forecast_jags <- as.data.frame(cbind(time,temp[1:18,1:210,5], temp[1:18,1:210,6], temp[1:18,1:210,7],temp[1:18,1:210,8], temp[1:18,1:210,9], temp[1:18,1:210,10]))%>%
     filter(time>=start_forecast)%>%
-    filter(time<=start_forecast+10)%>%
+    filter(time<=start_forecast+16)%>%
     melt(., id = 'time')%>%
     group_by(time)%>%
     mutate(value = as.numeric(value))%>%
@@ -80,26 +80,13 @@ for(s in 1:length(dates)){
     mutate(hobo_temp_sd = NA)%>%
     mutate(log_ebu_rate = NA)%>%
     mutate(log_ebu_rate_sd = NA)%>%
-    select(time, hobo_temp, hobo_temp_sd, water_temp_dam, water_temp_dam_sd, log_ebu_rate, log_ebu_rate_sd)%>%
+    mutate(daily_temp = NA)%>%
+    mutate(daily_temp_sd = NA)%>%
+    mutate(daily_wind = NA)%>%
+    mutate(daily_wind_sd = NA)%>%
+    mutate(diff_bp = NA)%>%
+    select(time, hobo_temp, hobo_temp_sd,daily_temp,daily_temp_sd,daily_wind,daily_wind_sd,diff_bp,water_temp_dam,water_temp_dam_sd,log_ebu_rate,log_ebu_rate_sd)%>%
     mutate(time = as.Date(time))
-  
-  
-  # Prepare forecast so it can be saved as an .rds file and uploaded to github
-  forecast_save_temp <- as.data.frame(cbind(time,temp[1:14,1:210,5], temp[1:14,1:210,6], temp[1:14,1:210,7],temp[1:14,1:210,8], temp[1:14,1:210,9], temp[1:14,1:210,10]))%>%
-    filter(time>=start_forecast)%>%
-    filter(time<=start_forecast+10)%>%
-    melt(., id = 'time')%>%
-    group_by(time)%>%
-    mutate(value = as.numeric(value))%>%
-    summarise(mean = mean(value),
-              max = max(value),
-              min = min(value),
-              upper = quantile(value, 0.95),
-              lower = quantile(value, 0.05),
-              var = var(value),
-              sd = sd(value))
-  
-  saveRDS(forecast_save_temp, paste0("./forecast_output/FLARE_temp_forecast_alltraps",dates[s],".rds"))
   
   # Close out current NC file
   nc_close(nc)
@@ -173,18 +160,18 @@ for(s in 1:length(dates)){
   
   # Here is the meat of the AR model that is using temperature and
   
-  output <- matrix(ncol=420, nrow=11)
+  output <- matrix(ncol=420, nrow=16)
   
   for(m in 1:ncol(output)){
     
     if(hold_methane_pars){
-      mu2 <- sample(-6.58, 11, replace = T)
-      phi <- sample(0.26, 11, replace = T)
-      omega <- sample(0.38, 11, replace = T)
+      mu2 <- sample(-6.58, 16, replace = T)
+      phi <- sample(0.26, 16, replace = T)
+      omega <- sample(0.38, 16, replace = T)
     }else{
-      mu2 <- rnorm(11, -6.58, 1.27)
-      phi <- rnorm(11, 0.26, 0.05)
-      omega <- rnorm(11, 0.38, 0.05)
+      mu2 <- rnorm(16, -6.58, 1.27)
+      phi <- rnorm(16, 0.26, 0.05)
+      omega <- rnorm(16, 0.38, 0.05)
     }
     
     if(hold_methane_process){
@@ -196,13 +183,13 @@ for(s in 1:length(dates)){
     if(hold_FLARE_temp){
       FLARE_temp <- forecast_save_temp$mean
     }else{
-      FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
+      FLARE_temp <- rnorm(16, forecast_save_temp$mean, forecast_save_temp$sd)
     }
     
     if(hold_IC){
       latent_ebu <- model_ic$log_ebu_rate
     }else{
-      latent_ebu <- rnorm(11, model_ic$log_ebu_rate, model_ic$log_ebu_rate_sd)
+      latent_ebu <- rnorm(16, model_ic$log_ebu_rate, model_ic$log_ebu_rate_sd)
     }
     
     # This is the actual equation that is being run for the ebullition model
@@ -211,7 +198,7 @@ for(s in 1:length(dates)){
     ebu_forecast <- as.data.frame(output)
   }
   
-  ebu_forecast <- cbind(forecast_time$time, ebu_forecast)
+  ebu_forecast <- cbind(forecast_time$time[-1], ebu_forecast)
   names(ebu_forecast)[1] <- "time"
   ebu_forecast <- melt(ebu_forecast, id = "time")
   

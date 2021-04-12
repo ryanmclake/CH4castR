@@ -105,7 +105,7 @@ for(s in 1:length(dates)){
     sd_no_gaps <- full_ebullition_model_alltrap_jags$log_ebu_rate_sd[!is.na(full_ebullition_model_alltrap_jags$log_ebu_rate_sd)]
     
     # read the .nc file[h,s] from FLARE runs that correspond directly to dates ebullition from the traps were measured
-    files <- list.files("./forecast_driver/")                                          
+    files <- list.files("./forecast_flare_driver/")                                          
     start_forecast <- max(full_ebullition_model_alltrap_jags$time)         
     start <- paste(gsub("-", "_", start_forecast))                  
     start <-paste0(start,"_F_1")
@@ -262,7 +262,7 @@ for(s in 1:length(dates)){
                                variable.names = jags.params.ar, 
                                n.iter = 10000, n.burnin = 1000)
     
-    #Use TidyBayes package to clean up the JAGS output
+    ##GENEARTE THE CREDIBLE INTERVAL
     ebu_out_forecast <- jags.out %>%
       spread_draws(Y[day]) %>%
       filter(.chain == 1) %>%
@@ -288,7 +288,7 @@ for(s in 1:length(dates)){
     forecast_saved_ebu <- ebu_out_forecast %>%
       filter(time >= start_forecast)%>%
       mutate(forecast_date = start_forecast)
-    saveRDS(forecast_saved_ebu, paste0("./forecast_output/ebullition_hidden_markov_forecast_alltrap_",dates[s],".rds"))
+    saveRDS(forecast_saved_ebu, paste0("./forecast_output/ebullition_predictive_interval_forecast_alltrap_",dates[s],".rds"))
 
     # Extract the parameter esimates from the ebullition model run for dates[s] and traps[h]
     ########################################################################################
@@ -301,6 +301,7 @@ for(s in 1:length(dates)){
       select(forecast_date, sd.pro, mu2, phi, omega, IC_forecast)
     saveRDS(ebu_out_parms, paste0("./forecast_output/ebullition_parameters_",dates[s],".rds"))
     #######################################################################################
+
     
     #UNCERTAINTY PARTITIONING OF DATA
     ########################################################################################
@@ -316,46 +317,49 @@ for(s in 1:length(dates)){
 
     output <- matrix(ncol=420, nrow=11)
 
-     for(m in 1:ncol(output)){
-
-       if(hold_methane_pars){
-         mu2 <- sample(mean(ebu_out_parms$mu2, 11))
-         phi <- sample(mean(ebu_out_parms$phi, 11))
-         omega <- sample(mean(ebu_out_parms$omega, 11))
-       }else{
-         mu2 <- sample(ebu_out_parms$mu2, 11)
-         phi <- sample(ebu_out_parms$phi, 11)
-         omega <- sample(ebu_out_parms$omega, 11)
-       }
-
+    for(m in 1:ncol(output)){
+      
+      parms <- sample_n(ebu_out_parms, 11)
+      
+      if(hold_methane_pars){
+        mu2 <- sample(mean(ebu_out_parms$mu2, 11))
+        phi <- sample(mean(ebu_out_parms$phi, 11))
+        omega <- sample(mean(ebu_out_parms$omega, 11))
+      }else{
+        mu2 <- as.vector(parms$mu2)
+        phi <- as.vector(parms$phi)
+        omega <- as.vector(parms$omega)
+      }
+      
       if(hold_methane_process){
         process_error <- 0
       }else{
-        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+        process_error <- 1/parms$sd.pro^2
       }
-
+      
       if(hold_FLARE_temp){
         FLARE_temp <- forecast_save_temp$mean
       }else{
         FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
+        
       }
-
-       if(hold_IC){
-         latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
-       }else{
-         latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
-       }
-
+      
+      if(hold_IC){
+        latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
+      }else{
+        latent_ebu <- as.vector(parms$IC_forecast)
+      }
+      
       # This is the actual equation that is being run for the ebullition model
-
-       output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
-       ebu_forecast <- as.data.frame(output)
+      
+      output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
+      ebu_forecast <- as.data.frame(output)
     }
-
+    
     ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
     names(ebu_forecast)[1] <- "time"
     ebu_forecast <- melt(ebu_forecast, id = "time")
-
+    
     ebu_forecast_partition <- ebu_forecast %>%
       group_by(time) %>%
       summarise(mean = mean(value),
@@ -381,46 +385,48 @@ for(s in 1:length(dates)){
     output <- matrix(ncol=420, nrow=11)
 
     for(m in 1:ncol(output)){
-
+      
+      parms <- sample_n(ebu_out_parms, 11)
+      
       if(hold_methane_pars){
         mu2 <- sample(mean(ebu_out_parms$mu2, 11))
         phi <- sample(mean(ebu_out_parms$phi, 11))
         omega <- sample(mean(ebu_out_parms$omega, 11))
       }else{
-        mu2 <- sample(ebu_out_parms$mu2, 11)
-        phi <- sample(ebu_out_parms$phi, 11)
-        omega <- sample(ebu_out_parms$omega, 11)
+        mu2 <- as.vector(parms$mu2)
+        phi <- as.vector(parms$phi)
+        omega <- as.vector(parms$omega)
       }
-
+      
       if(hold_methane_process){
         process_error <- 0
       }else{
-        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+        process_error <- 1/parms$sd.pro^2
       }
-
+      
       if(hold_FLARE_temp){
-        FLARE_temp <-forecast_save_temp$mean
+        FLARE_temp <- forecast_save_temp$mean
       }else{
         FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
-
+        
       }
-
+      
       if(hold_IC){
         latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
       }else{
-        latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
+        latent_ebu <- as.vector(parms$IC_forecast)
       }
-
+      
       # This is the actual equation that is being run for the ebullition model
-
+      
       output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
       ebu_forecast <- as.data.frame(output)
     }
-
+    
     ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
     names(ebu_forecast)[1] <- "time"
     ebu_forecast <- melt(ebu_forecast, id = "time")
-
+    
     ebu_forecast_partition <- ebu_forecast %>%
       group_by(time) %>%
       summarise(mean = mean(value),
@@ -446,46 +452,48 @@ for(s in 1:length(dates)){
     output <- matrix(ncol=420, nrow=11)
 
     for(m in 1:ncol(output)){
-
+      
+      parms <- sample_n(ebu_out_parms, 11)
+      
       if(hold_methane_pars){
         mu2 <- sample(mean(ebu_out_parms$mu2, 11))
         phi <- sample(mean(ebu_out_parms$phi, 11))
         omega <- sample(mean(ebu_out_parms$omega, 11))
       }else{
-        mu2 <- sample(ebu_out_parms$mu2, 11)
-        phi <- sample(ebu_out_parms$phi, 11)
-        omega <- sample(ebu_out_parms$omega, 11)
+        mu2 <- as.vector(parms$mu2)
+        phi <- as.vector(parms$phi)
+        omega <- as.vector(parms$omega)
       }
-
+      
       if(hold_methane_process){
         process_error <- 0
       }else{
-        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+        process_error <- 1/parms$sd.pro^2
       }
-
+      
       if(hold_FLARE_temp){
         FLARE_temp <- forecast_save_temp$mean
       }else{
         FLARE_temp <- rnorm(11, forecast_save_temp$mean, forecast_save_temp$sd)
-
+        
       }
-
+      
       if(hold_IC){
         latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
       }else{
-        latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
+        latent_ebu <- as.vector(parms$IC_forecast)
       }
-
+      
       # This is the actual equation that is being run for the ebullition model
-
+      
       output[,m] <- mu2 + phi * latent_ebu + omega * FLARE_temp + process_error
       ebu_forecast <- as.data.frame(output)
     }
-
+    
     ebu_forecast <- cbind(forecast_saved_ebu$time, ebu_forecast)
     names(ebu_forecast)[1] <- "time"
     ebu_forecast <- melt(ebu_forecast, id = "time")
-
+    
     ebu_forecast_partition <- ebu_forecast %>%
       group_by(time) %>%
       summarise(mean = mean(value),
@@ -511,21 +519,23 @@ for(s in 1:length(dates)){
     output <- matrix(ncol=420, nrow=11)
 
     for(m in 1:ncol(output)){
-
+      
+      parms <- sample_n(ebu_out_parms, 11)
+      
       if(hold_methane_pars){
         mu2 <- sample(mean(ebu_out_parms$mu2, 11))
         phi <- sample(mean(ebu_out_parms$phi, 11))
         omega <- sample(mean(ebu_out_parms$omega, 11))
       }else{
-        mu2 <- sample(ebu_out_parms$mu2, 11)
-        phi <- sample(ebu_out_parms$phi, 11)
-        omega <- sample(ebu_out_parms$omega, 11)
+        mu2 <- as.vector(parms$mu2)
+        phi <- as.vector(parms$phi)
+        omega <- as.vector(parms$omega)
       }
 
       if(hold_methane_process){
         process_error <- 0
       }else{
-        process_error <- sample(1/ebu_out_parms$sd.pro^2, 11)
+        process_error <- 1/parms$sd.pro^2
       }
 
       if(hold_FLARE_temp){
@@ -538,7 +548,7 @@ for(s in 1:length(dates)){
       if(hold_IC){
         latent_ebu <- sample(mean(ebu_out_parms$IC_forecast, 11))
       }else{
-        latent_ebu <- sample(ebu_out_parms$IC_forecast, 11)
+        latent_ebu <- as.vector(parms$IC_forecast)
       }
       
       # This is the actual equation that is being run for the ebullition model

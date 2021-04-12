@@ -4,7 +4,7 @@ model {
    #priors===================================================
    
    mu2 ~ dnorm(0,5);
-   sd.pro ~ dunif(0.0001, 10000);
+   sd.pro ~ dunif(0.0001, 1000);
    tau.pro <-  pow(sd.pro, -2);
    phi ~ dnorm(0,1);
    omega ~ dnorm(0,5);
