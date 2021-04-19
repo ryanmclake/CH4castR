@@ -3,9 +3,11 @@
 # Ryan McClure                                                  #
 # COMPILE/ANALYZE/PLOT FORECASTS                                #
 #################################################################
-
+RMSE = function(m, o){
+  sqrt(mean((m - o)^2))
+}
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# DIRECTORY NEEDS TO BE CHANGED to ./forecast_output/
+# DATA PATH NEEDS TO BE CHANGED to ./forecast_output/
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 data_path <- "./forecast_output"
@@ -144,6 +146,22 @@ two_week_forecast_flare_NSE <- trap_all_partition %>%
   ungroup(.)%>%
   summarize(two_week_nse_flare_model = NSE(exp(mean), exp(log_ebu_rate)))
 
+one_week_forecast_flare_RMSE <- trap_all_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  ungroup(.)%>%
+  summarize(one_week_rmse_flare_model = RMSE(exp(mean), exp(log_ebu_rate)))
+
+two_week_forecast_flare_RMSE <- trap_all_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  ungroup(.)%>%
+  summarize(one_week_rmse_flare_model = RMSE(exp(mean), exp(log_ebu_rate)))
+
 one_week_forecast_static_NSE <- trap_static_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
@@ -159,6 +177,22 @@ two_week_forecast_static_NSE <- trap_static_partition %>%
   filter(row_number(forecast_date) == 2) %>%
   ungroup(.)%>%
   summarize(two_week_nse_static_model = NSE(exp(mean), exp(log_ebu_rate)))
+
+one_week_forecast_static_RMSE <- trap_static_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 1) %>%
+  ungroup(.)%>%
+  summarize(one_week_rmse_static_model = RMSE(exp(mean), exp(log_ebu_rate)))
+
+two_week_forecast_static_RMSE <- trap_static_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  ungroup(.)%>%
+  summarize(two_week_rmse_static_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
 one_week_forecast_null_nse <- trap_null_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
@@ -176,6 +210,21 @@ two_week_forecast_null_nse <- trap_null_partition %>%
   ungroup(.)%>%
   summarize(two_week_nse_null_model = NSE(exp(mean), exp(log_ebu_rate)))
 
+one_week_forecast_null_RMSE <- trap_null_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 2) %>%
+  ungroup(.)%>%
+  summarize(one_week_RMSE_null_model = RMSE(exp(mean), exp(log_ebu_rate)))
+
+two_week_forecast_null_RMSE <- trap_null_partition %>%
+  select(time, mean, log_ebu_rate, forecast_date)%>%
+  na.omit(.)%>%
+  group_by(forecast_date)%>%
+  filter(row_number(forecast_date) == 3) %>%
+  ungroup(.)%>%
+  summarize(two_week_RMSE_null_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
 # one_week_forecast_noaa_nse <- trap_noaa_partition %>%
 #   select(time, mean, log_ebu_rate, forecast_date)%>%
@@ -196,6 +245,18 @@ two_week_forecast_null_nse <- trap_null_partition %>%
 
 ### FIGURES ###
 ### visualizations of the full ebullition forecasts (figure 3)
+
+
+`Evaluation Metric` <- c("~1 week NSE","~2 week NSE", "~1 week RMSE", "~2 week RMSE")
+`A: SS model with DA` <- c(0.77,0.54,6.63,9.55)
+`B: SS model without DA` <- c(-0.35,-1.77,16.5,23.2)
+`C: Persistence null model` <- c(0.47,0.01,10.2,14.1)
+table <- cbind(`Evaluation Metric`, `A: SS model with DA`,`B: SS model without DA`,`C: Persistence null model`)
+
+mytheme <- gridExtra::ttheme_default(
+  core = list(padding = unit(c(1, 1), "mm")))
+tbl <- tableGrob(table, theme = mytheme, rows = NULL)
+
 ebullition_forecasts <- trap_all %>%
   ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
   geom_ribbon(aes(ymin = exp(lower_90), ymax = exp(upper_90)), alpha = 0.2, fill = "midnightblue") +
@@ -205,7 +266,7 @@ ebullition_forecasts <- trap_all %>%
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "A: State-space forecast model with data assimilation")+
+  labs(title = "A: Forecast model with data assimilation")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
@@ -298,10 +359,9 @@ null_forecasts <- trap_all_per_null %>%
 #         legend.text = element_text(size = 16, color = "black"))
 
 
-fig3 <- (ebullition_forecasts+static_forecasts)/(null_forecasts+plot_spacer())
+fig3 <- (ebullition_forecasts+static_forecasts)/(null_forecasts+tbl)
 fig3
-ggsave(path = ".", filename = "FIGURE3_forecasts.tiff", width = 14, height = 12, device='tiff', dpi=300)
-
+ggsave(path = ".", filename = "FIGURE3_forecasts.jpg", width = 18, height = 12, device='jpg', dpi=400)
 
 daily_variance <- trap_all%>%
   ggplot(., aes(x = days, y = exp(var), group = days)) +
@@ -354,58 +414,7 @@ season_variance <- trap_all %>%
 
 fig4 <- daily_variance/season_variance
 fig4
-ggsave(path = ".", filename = "FIGURE4_variance.tiff", width = 12, height = 16, device='tiff', dpi=300)
-
-
-# # Forecast bias figures
-# forecast_bias_box <- ggplot(stats_all_bias, aes(x = model, y = exp(Bias))) +
-#   geom_boxplot()+
-#   geom_jitter(aes(color = time), width = 0.1, size = 2)+
-#   theme_bw()+
-#   labs(title = "A: Forecast bias")+
-#   ylab("Forecast bias")+
-#   xlab("")+
-#   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-#                 labels = trans_format("log10", math_format(10^.x))) +
-#   geom_hline(yintercept = 0, lty = "dashed")+
-#   theme(axis.text=element_text(size=15, color = "black"),
-#         axis.title=element_text(size=15, color = "black"),
-#         panel.grid.major.x = element_blank(),
-#         panel.grid.major.y = element_blank(),
-#         panel.grid.minor.x = element_blank(),
-#         panel.grid.minor.y = element_blank(),
-#         legend.title = element_blank(),
-#         title = element_text(size = 15), legend.position = c(0.9,0.8),
-#         legend.text = element_text(size = 16, color = "black"))
-# 
-# 
-# ts_bias <- ggplot(stats_all_bias, aes(x = time, y = exp(Bias), group = model)) +
-#   geom_point(aes(color = model), size = 3)+
-#   geom_smooth(aes(color = model),method = "loess", lwd = 2)+
-#   theme_bw()+
-#   geom_hline(yintercept = 0, lty = "dashed")+
-#   labs(title = "B: Time series of forecast bias")+
-#   ylab("Forecast bias")+
-#   xlab("")+
-#   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-#                 labels = trans_format("log10", math_format(10^.x))) +
-#   theme(axis.text=element_text(size=15, color = "black"),
-#         axis.title=element_text(size=15, color = "black"),
-#         panel.grid.major.x = element_blank(),
-#         panel.grid.major.y = element_blank(),
-#         panel.grid.minor.x = element_blank(),
-#         panel.grid.minor.y = element_blank(),
-#         legend.title = element_blank(),
-#         title = element_text(size = 15),legend.position = c(0.7, 0.9),
-#         legend.text = element_text(size = 16, color = "black"))
-# 
-# fig5 <- forecast_bias_box/ts_bias
-# fig5
-# 
-# ggsave(path = "C:/Users/Owner/Documents/CH4cast/figures", filename = "FIGURE5_bias.tiff", width = 8, height = 10, device='tiff', dpi=100)
-# 
-
-
+ggsave(path = ".", filename = "FIGURE4_variance.jpg", width = 12, height = 16, device='jpg', dpi=400)
 
 
 # PARAMETER ESTIAMTES FROM FORECASTS
@@ -413,7 +422,7 @@ process <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_process))
   geom_ribbon(aes(ymin = mean_process-sd_process, ymax = mean_process+sd_process), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "D: Model process error")+
+  labs(title = "C: Model process error")+
   ylab(expression(paste(epsilon[t])))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
@@ -449,7 +458,7 @@ AR <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_observe)) +
   geom_ribbon(aes(ymin = mean_observe-sd_observe, ymax = mean_observe+sd_observe), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "B: Autoregressive parameter")+
+  labs(title = "A: Autoregressive parameter")+
   ylab(expression(paste(beta[1])))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
@@ -467,7 +476,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
   geom_ribbon(aes(ymin = mean_temp-sd_temp, ymax = mean_temp+sd_temp), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "A: Temperature parameter")+
+  labs(title = "B: Temperature parameter")+
   ylab(expression(paste(beta[2])))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
@@ -482,11 +491,12 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         legend.text = element_text(size = 16, color = "black"))
 
 paramter = (AR+temp)/(process+plot_spacer())
-ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10, device='tiff', dpi=300)
+paramter
+ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 10, device='jpg', dpi=400)
 
 
 
-  #  PARTITION UNCERTATINY
+#  PARTITION UNCERTATINY
   c <- ggplot(all_partitioned_melt, aes(x = days, y = value, group=interaction(forecast_date,variable), fill = interaction(forecast_date,variable)))+
            geom_area(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
@@ -531,7 +541,7 @@ ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10,
     geom_area(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
     theme_bw()+
-    labs(title = "B: Forecast model uncertainty among all forecast cycles")+
+    labs(title = "B: Forecast model uncertainty aggregated among all forecast cycles")+
     ylab("Proportion to total variance")+
     xlab("Days into future")+
     xlim(c(0,16))+
@@ -549,4 +559,7 @@ ggsave(path = ".", filename = "FIGURE5_paramters.tiff", width = 10, height = 10,
   partition = c/d
   partition
   
-  ggsave(path = ".", filename = "FIGURE6_partition.tiff", width = 12, height = 12, device='tiff', dpi=300)
+  ggsave(path = ".", filename = "FIGURE6_partition.jpg", width = 12, height = 12, device='jpg', dpi=400)
+
+
+  

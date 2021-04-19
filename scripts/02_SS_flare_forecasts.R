@@ -1,5 +1,5 @@
 #################################################################
-# CH4cast version 2                                             #
+# CH4cast                                                       #
 # Ryan McClure                                                  #
 # JAGS MODEL and FORECASTING SCRIPT                             #
 #################################################################
@@ -160,11 +160,9 @@ for(s in 1:length(dates)){
       filter(time<=start_forecast+16)%>%
       select(-time)%>%
       t(.)
-      
-    
+
     # Close out current NC file
     nc_close(nc)
-    
     
     ### THIS IS THE ACTUAL JAGS MODELING PART ###
     # Append the temperature forecast from FLARE to the dataframe
@@ -194,8 +192,7 @@ for(s in 1:length(dates)){
     gelman <- as.data.frame(bind_cols(gelman$mpsrf,as.Date(dates[s])))
     names(gelman) <- c("mpsrf","forecast_date")
     saveRDS(gelman, paste0("./forecast_output/temp_scale_gelman_diagnostics_",dates[s],".rds"))
-    
-    
+   
     jags.params.lm = c("sd.pro", "mu", "beta", "X", "Y", "C")
     
     jags.out   <- coda.samples(model = j.lm.model,
@@ -317,12 +314,8 @@ for(s in 1:length(dates)){
     #UNCERTAINTY PARTITIONING OF DATA
     ########################################################################################
 
-
     Nmc <- 1000         ## set number of Monte Carlo draws
     future <- seq(from = start_forecast, to = start_forecast+lubridate::days(16), by = "days")
-    ylim <- c(-10, 10)  ## set Y range on plot
-    N.cols <- c("black", "red", "green", "blue", "orange") ## set colors
-    trans <- 0.8       ## set transparancy
 
     
     forecast_function <- function(IC, mu2, phi, omega, FLARE, Q = 0, n = Nmc){
