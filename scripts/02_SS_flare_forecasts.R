@@ -8,8 +8,8 @@
 model.lm = ("lm.txt")
 jagsscript = cat("
 model {  
-   mu ~ dnorm(0,1);  # intercet
-   beta ~ dnorm(0,1); # cat temp paramter
+   mu ~ dnorm(0,1e-6);  # intercet
+   beta ~ dnorm(0,1e-6); # cat temp paramter
    sd.pro ~ dunif(0.00001, 10000);
    tau.pro <-  pow(sd.pro, -2)
    
@@ -55,13 +55,13 @@ model {
       #data model================================================
       
       Y[i] ~ dnorm(X[i], tau.obs[i]); # Observation variation
-      D[i] ~ dnorm(D_mean[i],tau.pre[i]); # Covariate variation 
       
       #end of data model=========================================
    }
    IC_forecast <- X[N]
 }
 ", file = model.ar2)
+
 
 # # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
 dates <- c(as.Date("2019-05-27"),
@@ -105,11 +105,11 @@ for(s in 1:length(dates)){
     
     # Select site and forecast date (#hashed out lines are for testing purposes)
     full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
-      filter(time <= dates[s])%>%
-      #filter(time <= as.Date("2019-07-01"))%>%
+      filter(time <= as.Date("2019-06-24"))%>%
+      #filter(time > as.Date("2017-10-30"))%>%
       arrange(time)
     
-    # fill in any missing covariate data This is done using impute TS --> but other models might be better
+    # fill in any missing covariate data This is done using impute TS --> other imputation models might be better
     full_ebullition_model_alltrap_jags$water_temp_dam <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam,option = "linear")
     full_ebullition_model_alltrap_jags$water_temp_dam_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam_sd,option = "linear")
     full_ebullition_model_alltrap_jags$hobo_temp <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$hobo_temp,option = "linear")
@@ -177,7 +177,7 @@ for(s in 1:length(dates)){
                         C_mean = full_ebullition_model_alltrap_jags$water_temp_dam,
                         tau.pre = 1/(full_ebullition_model_alltrap_jags$water_temp_dam_sd ^ 2))
     
-    jags.params.lm.eval = c("sd.pro", "mu", "beta")
+    jags.params.lm.eval = c("sd.pro", "mu", "beta","tau.pro")
     
     
     j.lm.model   <- jags.model(file = model.lm,
@@ -187,11 +187,25 @@ for(s in 1:length(dates)){
     eval  <- coda.samples(model = j.lm.model,
                                variable.names = jags.params.lm.eval,
                                n.iter = 10000, n.burnin = 1000)
-    #plot(eval)
+    plot(eval)
     gelman <- gelman.diag(eval)
     gelman <- as.data.frame(bind_cols(gelman$mpsrf,as.Date(dates[s])))
     names(gelman) <- c("mpsrf","forecast_date")
     saveRDS(gelman, paste0("./forecast_output/temp_scale_gelman_diagnostics_",dates[s],".rds"))
+    
+    temp_out_parms <- eval %>%
+      spread_draws(sd.pro, mu, beta) %>%
+      filter(.chain == 1) %>%
+      rename(ensemble = .iteration) %>%
+      ungroup()%>%
+      select(sd.pro, mu, beta)%>%
+      summarise(mean_sd.pro = mean(sd.pro),
+                sd_sd.pro = sd(sd.pro),
+                mean_mu = mean(mu),
+                sd.mu = sd(mu),
+                mean_beta = mean(beta),
+                sd_beta = sd(beta))
+      
    
     jags.params.lm = c("sd.pro", "mu", "beta", "X", "Y", "C")
     
@@ -229,8 +243,7 @@ for(s in 1:length(dates)){
     jags.data.ar = list(X = full_ebullition_model_alltrap_jags$log_ebu_rate, 
                         tau.obs = 1/(full_ebullition_model_alltrap_jags$log_ebu_rate_sd ^ 2),
                         N = nrow(full_ebullition_model_alltrap_jags), 
-                        D_mean = full_ebullition_model_alltrap_jags$forecast_temp,
-                        tau.pre = 1/(full_ebullition_model_alltrap_jags$forecast_temp_sd ^ 2))
+                        D = full_ebullition_model_alltrap_jags$forecast_temp)
     
     # Specify the parameters of interest from the model
     jags.params.ar = c("sd.pro", "mu2", "phi", "omega", "X", "Y", "D", "IC_forecast")
@@ -241,10 +254,7 @@ for(s in 1:length(dates)){
     init <- list()
     for(i in 1:nchain){
       init[[i]] <- list(sd.pro = sd(diff(y_nogaps)),
-                        phi = rnorm(1,0.26, 0.05),
-                          mu2 = rnorm(1, -6.58, 1.27),
-                          omega = rnorm(1,0.38,0.05),
-                        .RNG.name = "base::Wichmann-Hill", # so it is reproducible
+                        .RNG.name = "base::Wichmann-Hill",
                         .RNG.seed = chain_seeds[i])
     }
     
@@ -257,8 +267,9 @@ for(s in 1:length(dates)){
     #Run JAGS model and sample from the posteriors
     eval_ebu  <- coda.samples(model = j.model,
                                variable.names = c("sd.pro", "mu2", "phi", "omega"),
-                               n.iter = 10000, n.burnin = 1000)
+                               n.iter = 10000, n.burnin = 3000)
 
+    plot(eval_ebu)
     gelman_ebu <- gelman.diag(eval_ebu)
     gelman_ebu <- as.data.frame(bind_cols(gelman_ebu$mpsrf,as.Date(dates[s])))
     names(gelman_ebu) <- c("mpsrf","forecast_date")
@@ -290,7 +301,8 @@ for(s in 1:length(dates)){
                 lower_60 = quantile(Y, 0.40),
                 var = var(Y),
                 sd = sd(Y),.groups = "drop")
-
+    ggplot(ebu_out_forecast, aes(time, mean))+
+      geom_line()+geom_ribbon(aes(ymin = lower_90, ymax = upper_90), alpha = 0.2, fill = "midnightblue")
     
     # # Save just forecast from the date of the observation + 10 days into the future
     forecast_saved_ebu <- ebu_out_forecast %>%
@@ -306,7 +318,15 @@ for(s in 1:length(dates)){
       rename(ensemble = .iteration) %>%
       mutate(forecast_date = start_forecast)%>%
       ungroup()%>%
-      select(forecast_date, sd.pro, mu2, phi, omega, IC_forecast)
+      select(forecast_date, sd.pro, mu2, phi, omega, IC_forecast)%>%
+      summarise(mean_sd.pro = mean(sd.pro),
+                sd_sd.pro = sd(sd.pro),
+                mean_mu2 = mean(mu2),
+                sd.mu2 = sd(mu2),
+                mean_omega = mean(omega),
+                sd_omega = sd(omega),
+                mean_phi = mean(phi),
+                sd_phi = sd(phi))
     saveRDS(ebu_out_parms, paste0("./forecast_output/ebullition_parameters_",dates[s],".rds"))
     #######################################################################################
 
@@ -324,7 +344,7 @@ for(s in 1:length(dates)){
       for(t in 1:ncol(N)){
         est <- mu2 + phi * Npre + omega * FLARE + Q
         N[,t] <- rnorm(n, est, Q)                                    ## predict next step
-        Npre <- N[, t]                                              ## update IC
+        Npre <- N[, t]                                               ## update IC
       }
       return(N)
     }

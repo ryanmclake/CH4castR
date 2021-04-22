@@ -1,7 +1,7 @@
 
 model {  
-   mu ~ dnorm(0,1);  # intercet
-   beta ~ dnorm(0,1); # cat temp paramter
+   mu ~ dnorm(3.22,1/0.384^2);  # intercet
+   beta ~ dnorm(0.797,1/0.0187^2); # cat temp paramter
    sd.pro ~ dunif(0.00001, 10000);
    tau.pro <-  pow(sd.pro, -2)
    

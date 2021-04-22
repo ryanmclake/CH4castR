@@ -7,7 +7,7 @@
 if (!"pacman" %in% installed.packages()) install.packages("pacman")
 pacman::p_load(tidyverse, rjags, runjags, MCMCvis, lubridate, tidybayes,
                R2jags, ncdf4, reshape2, zoo, patchwork, hydroGOF, viridis,
-               imputeTS, devtools, lintr)
+               imputeTS, devtools, lintr,scales)
 
 ### Pull together all of the observations ###
 
@@ -28,7 +28,53 @@ try(download.file(inUrl1, infile1,method="curl"))
 if (is.na(file.size(infile1))) download.file(inUrl1, infile1,method="auto")
 
 ### Read the downloaded file into R Environment
-met <-read.csv(infile1, header=F ,skip=1, sep=",")
+met <-read.csv(infile1,header=F,skip=1,sep=",",
+               col.names=c("Site", 
+                       "Reservoir",
+                       "DateTime",
+                       "Record",
+                       "CR3000_Batt_V",
+                       "CR3000Panel_temp_C",
+                       "PAR_Average_umol_s_m2",
+                       "PAR_Total_mmol_m2",     
+                       "BP_Average_kPa",
+                       "AirTemp_Average_C",
+                       "RH_percent",
+                       "Rain_Total_mm",
+                       "WindSpeed_Average_m_s",
+                       "WindDir_degrees",
+                       "ShortwaveRadiationUp_Average_W_m2",
+                       "ShortwaveRadiationDown_Average_W_m2",
+                       "InfaredRadiationUp_Average_W_m2",
+                       "InfaredRadiationDown_Average_W_m2",
+                       "Albedo_Average_W_m2",
+                       "Flag_PAR_Average_umol_s_m2",
+                       "Note_PAR_Average_umol_s_m2",
+                       "Flag_PAR_Total_mmol_m2",
+                       "Note_PAR_Total_mmol_m2",
+                       "Flag_BP_Average_kPa",
+                       "Note_BP_Average_kPa",
+                       "Flag_AirTemp_Average_C",
+                       "Note_AirTemp_Average_C",
+                       "Flag_RH_percent",
+                       "Note_RH_percent",
+                       "Flag_Rain_Total_mm",
+                       "Note_Rain_Total_mm",
+                       "Flag_WindSpeed_Average_m_s",
+                       "Note_WindSpeed_Average_m_s",
+                       "Flag_WindDir_degrees",
+                       "Note_WindDir_degrees",
+                       "Flag_ShortwaveRadiationUp_Average_W_m2",
+                       "Note_ShortwaveRadiationUp_Average_W_m2",
+                       "Flag_ShortwaveRadiationDown_Average_W_m2",
+                       "Note_ShortwaveRadiationDown_Average_W_m2",
+                       "Flag_InfaredRadiationUp_Average_W_m2",
+                       "Note_InfaredRadiationUp_Average_W_m2",
+                       "Flag_InfaredRadiationDown_Average_W_m2",
+                       "Note_InfaredRadiationDown_Average_W_m2",
+                       "Flag_Albedo_Average_W_m2",
+                       "Note_Albedo_Average_W_m2"), 
+               check.names=TRUE)
 
 ### Break the EDI link
 unlink(infile1)
@@ -60,7 +106,71 @@ inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/271/5/c1b1f16b8e3edbb
 infile1 <- tempfile()
 try(download.file(inUrl1,infile1,method="curl"))
 if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
-catwalk <-read.csv(infile1,header=F,skip=1,sep=",")
+catwalk <-read.csv(infile1,header=F, skip=1, sep=",",
+                   col.names=c("Reservoir",
+                               "Site",
+                               "DateTime",
+                               "ThermistorTemp_C_surface",
+                               "ThermistorTemp_C_1",
+                               "ThermistorTemp_C_2",
+                               "ThermistorTemp_C_3",
+                               "ThermistorTemp_C_4",
+                               "ThermistorTemp_C_5",
+                               "ThermistorTemp_C_6",
+                               "ThermistorTemp_C_7",
+                               "ThermistorTemp_C_8",
+                               "ThermistorTemp_C_9",
+                               "RDO_mgL_5",
+                               "RDOsat_percent_5",
+                               "RDO_mgL_5_adjusted",
+                               "RDOsat_percent_5_adjusted",
+                               "RDOTemp_C_5",
+                               "RDO_mgL_9",
+                               "RDOsat_percent_9",
+                               "RDO_mgL_9_adjusted",
+                               "RDOsat_percent_9_adjusted",
+                               "RDOTemp_C_9",
+                               "EXOTemp_C_1",
+                               "EXOCond_uScm_1",
+                               "EXOSpCond_uScm_1",
+                               "EXOTDS_mgL_1",
+                               "EXODOsat_percent_1",
+                               "EXODO_mgL_1",
+                               "EXOChla_RFU_1",
+                               "EXOChla_ugL_1",
+                               "EXOBGAPC_RFU_1",
+                               "EXOBGAPC_ugL_1",
+                               "EXOfDOM_RFU_1",
+                               "EXOfDOM_QSU_1",
+                               "EXO_pressure",
+                               "EXO_depth",
+                               "EXO_battery",
+                               "EXO_cablepower",
+                               "EXO_wiper",
+                               "Lvl_psi_9",
+                               "LvlTemp_C_9",
+                               "RECORD",
+                               "CR6_Batt_V",
+                               "CR6Panel_Temp_C",
+                               "Flag_All",
+                               "Flag_DO_1",
+                               "Flag_DO_5",
+                               "Flag_DO_9",
+                               "Flag_Chla",
+                               "Flag_Phyco",
+                               "Flag_TDS",
+                               "Flag_fDOM",
+                               "Flag_Temp_Surf",
+                               "Flag_Temp_1",
+                               "Flag_Temp_2",
+                               "Flag_Temp_3",
+                               "Flag_Temp_4",
+                               "Flag_Temp_5",
+                               "Flag_Temp_6",
+                               "Flag_Temp_7",
+                               "Flag_Temp_8",
+                               "Flag_Temp_9"),
+                   check.names=TRUE)
 unlink(infile1)
 
 ### Aggregate to daily temps between 2 and 3 meters
@@ -84,7 +194,35 @@ inUrl1  <- "https://pasta.lternet.edu/package/data/eml/edi/200/10/2461524a7da8f1
 infile1 <- tempfile()
 try(download.file(inUrl1,infile1,method="curl"))
 if (is.na(file.size(infile1))) download.file(inUrl1,infile1,method="auto")
-ctd <-read.csv(infile1,header=F,skip=1,sep=",")
+
+ctd <-read.csv(infile1, header=F, skip=1, sep=",",
+               col.names=c("Reservoir", 
+                           "Site",   
+                           "Date",  
+                           "Depth_m",
+                           "Temp_C",
+                           "DO_mgL",
+                           "DO_pSat",
+                           "Cond_uScm",
+                           "Spec_Cond_uScm",
+                           "Chla_ugL",
+                           "Turb_NTU",     
+                           "pH",
+                           "ORP_mV",
+                           "PAR_umolm2s",
+                           "Desc_rate",
+                           "Flag_Temp",
+                           "Flag_DO",
+                           "Flag_Cond",
+                           "Flag_SpecCond",
+                           "Flag_Chla",
+                           "Flag_Turb",
+                           "Flag_pH",
+                           "Flag_ORP",
+                           "Flag_PAR",
+                           "Flag_DescRate"),
+               check.names=TRUE)
+
 unlink(infile1)
 
 ctd_sum <- ctd %>% select(Reservoir, Date, Site, Depth_m, Temp_C)%>%
@@ -174,7 +312,7 @@ full_ebullition_model_alltrap$hobo_temp[is.nan(as.numeric(full_ebullition_model_
 full_ebullition_model_alltrap$hobo_temp_sd[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp_sd))] <- NA
 
 # Perform a check standard to confirm the Upstream Temps closely match the Hobo Temps
-a <- ggplot(full_ebullition_model_alltrap, aes(daily_temp, hobo_temp))+
+a <- ggplot(full_ebullition_model_alltrap, aes(water_temp_dam, hobo_temp))+
   geom_point()+
   geom_smooth(method = "lm")
 

@@ -266,7 +266,7 @@ ebullition_forecasts <- trap_all %>%
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "A: Forecast model with data assimilation")+
+  labs(title = "A: Forecasts with data assimilation")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
@@ -359,7 +359,7 @@ null_forecasts <- trap_all_per_null %>%
 #         legend.text = element_text(size = 16, color = "black"))
 
 
-fig3 <- (ebullition_forecasts+static_forecasts)/(null_forecasts+tbl)
+fig3 <- (ebullition_forecasts+static_forecasts)/(null_forecasts+plot_spacer())
 fig3
 ggsave(path = ".", filename = "FIGURE3_forecasts.jpg", width = 18, height = 12, device='jpg', dpi=400)
 

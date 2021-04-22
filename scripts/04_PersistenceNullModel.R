@@ -57,8 +57,8 @@ model{
 for(s in 1:length(dates)){
   
     targets <- full_ebullition_model_alltrap %>% 
-      #filter(time <= "2019-07-01")
-      filter(time <= dates[s])
+      filter(time <= "2017-10-23")
+      #filter(time <= dates[s])
     
     targets$water_temp_dam <- imputeTS::na_interpolation(targets$water_temp_dam,option = "linear")
     targets$water_temp_dam_sd <- imputeTS::na_interpolation(targets$water_temp_dam_sd,option = "linear")
@@ -120,7 +120,15 @@ for(s in 1:length(dates)){
   
   #Run JAGS model as the burn-in
   jags.out   <- coda.samples(model = j.model,variable.names = c("tau_add","tau_init"), n.iter = 10000)
-  
+  plot(jags.out)
+  null_out_parms <- jags.out %>%
+    spread_draws(tau_add, tau_init) %>%
+    filter(.chain == 1) %>%
+    rename(ensemble = .iteration) %>%
+    summarise(mean_tau_add = mean(tau_add),
+              sd_tau_add = sd(tau_add),
+              mean_tau_init = mean(tau_init),
+              sd.tau_init = sd(tau_init))
   #Run JAGS model again and sample from the posteriors
   m   <- coda.samples(model = j.model,
                       variable.names = c("x","tau_add","tau_init", "x_obs"),
