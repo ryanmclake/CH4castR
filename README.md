@@ -1,4 +1,4 @@
-# CH4cast_v1 user guide
+# CH4castR user guide
 
 ### Step 1 - DOWNLOAD CH4cast_v1 code via terminal in Rstudio
 
@@ -9,25 +9,25 @@
 3: In terminal, make a FOLDER anywhere on your local PC that is called --> CH4cast_v1
 
       For example:
-      mkdir /Users/Owner/Desktop/CH4cast_v1
+      mkdir /Users/Owner/Desktop/CH4castR
       
 4: In terminal, now make the new Folder your directory using the command "cd ".
 
       For example:
-      cd /Users/Owner/Desktop/CH4cast_v1
+      cd /Users/Owner/Desktop/CH4castR
       
 5: In terminal, run the following command to download the CH4cast code from Github. 
 
       For example:
-      git clone https://github.com/ryanmclake/CH4cast_v1.git
+      git clone https://github.com/ryanmclake/CH4castR.git
       
 6: After the cloning finishes, there should be a new folder in your working directory named "CH4cast_v1"
 
-### Step 2 - Run three forecasts of CH4 ebullition rates from summer 2019
+### Step 2 - Run forecasts of CH4 ebullition rates from summer 2019
 
-7: Navigate to the new folder called CH4cast_v1 under the "files" panel in Rstudio
+7: Navigate to the new folder called CH4castR under the "files" panel in Rstudio
 
-8: Go to the scripts folder and OPEN ALL OF THE SCRIPTS starting at 01 and then to 04
+8: Go to the scripts folder and OPEN ALL OF THE SCRIPTS starting at 01 and then to 06
 
 9: In the 01_DataCompile script, find the "Source" key on the top right --> Click "Source" and then let the script run until it is finished
 
