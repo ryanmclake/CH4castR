@@ -5,50 +5,8 @@
 #################################################################
 
 
-
-model.ar2 = ("ar2_model.txt")
-jagsscript = cat("
-model {  
-   
-   #priors===================================================
-   
-   mu2 ~ dnorm(0,5);
-   sd.pro ~ dunif(0.0001, 1000);
-   tau.pro <-  pow(sd.pro, -2);
-   phi ~ dnorm(0,1);
-   omega ~ dnorm(0,5);
-   
-   #Informative priors on initial conditions based on first observation
-   predY[1] <- X[1];
-   Y[1] ~ dnorm(X[1], tau.obs[1]);
-   
-   #end priors===============================================
-   
-   for(i in 2:N) {
-      
-      #process model=============================================
-      
-      predX[i] <- mu2 + phi*X[i-1] + omega*D[i];
-      X[i] ~ dnorm(predX[i],tau.pro);
-      
-      #end of process model======================================
-      
-      #data model================================================
-      
-      Y[i] ~ dnorm(X[i], tau.obs[i]); # Observation variation
-      D[i] ~ dnorm(D_mean[i],tau.pre[i]); # Covariate variation 
-      
-      #end of data model=========================================
-   }
-   IC_forecast <- X[N]
-}
-", file = model.ar2)
-
 # # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(as.Date("2019-05-27"),
-           as.Date("2019-06-03"),
-           as.Date("2019-06-10"),
-           as.Date("2019-06-17"),
+dates <- c(as.Date("2019-06-17"),
            as.Date("2019-06-24"),
            as.Date("2019-07-01"),
            as.Date("2019-07-08"),
@@ -76,8 +34,8 @@ for(s in 1:length(dates)){
   
   # Select site and forecast date (#hashed out lines are for testing purposes)
   full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
-    filter(time <= dates[s])%>%
-    #filter(time <= as.Date("2019-07-01"))%>%
+    filter(time <= as.Date(dates[s]))%>%
+    filter(time >= as.Date("2019-05-27"))%>%
     arrange(time)
   
   # fill in any missing covariate data This is done using impute TS --> but other models might be better
@@ -153,7 +111,7 @@ for(s in 1:length(dates)){
   jags.params.lm.eval = c("sd.pro", "mu", "beta")
   
   
-  j.lm.model   <- jags.model(file = model.lm,
+  j.lm.model   <- jags.model(file = model.lm19,
                              data = jags.data.lm,
                              n.chains = 3)
   
@@ -194,8 +152,7 @@ for(s in 1:length(dates)){
   jags.data.ar = list(X = full_ebullition_model_alltrap_jags$log_ebu_rate, 
                       tau.obs = 1/(full_ebullition_model_alltrap_jags$log_ebu_rate_sd ^ 2),
                       N = nrow(full_ebullition_model_alltrap_jags), 
-                      D_mean = full_ebullition_model_alltrap_jags$forecast_temp,
-                      tau.pre = 1/(full_ebullition_model_alltrap_jags$forecast_temp_sd ^ 2))
+                      D = full_ebullition_model_alltrap_jags$forecast_temp)
   
   # Specify the parameters of interest from the model
   jags.params.ar = c("sd.pro", "mu2", "phi", "omega", "X", "Y", "D", "IC_forecast")
@@ -214,7 +171,7 @@ for(s in 1:length(dates)){
   }
   
   #Initialize JAGS model
-  j.model   <- jags.model(file = model.ar2,
+  j.model   <- jags.model(file = model.ar19,
                           data = jags.data.ar,
                           inits = init,
                           n.chains = 3)

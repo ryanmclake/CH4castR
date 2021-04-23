@@ -246,17 +246,6 @@ two_week_forecast_null_RMSE <- trap_null_partition %>%
 ### FIGURES ###
 ### visualizations of the full ebullition forecasts (figure 3)
 
-
-`Evaluation Metric` <- c("~1 week NSE","~2 week NSE", "~1 week RMSE", "~2 week RMSE")
-`A: SS model with DA` <- c(0.77,0.54,6.63,9.55)
-`B: SS model without DA` <- c(-0.35,-1.77,16.5,23.2)
-`C: Persistence null model` <- c(0.47,0.01,10.2,14.1)
-table <- cbind(`Evaluation Metric`, `A: SS model with DA`,`B: SS model without DA`,`C: Persistence null model`)
-
-mytheme <- gridExtra::ttheme_default(
-  core = list(padding = unit(c(1, 1), "mm")))
-tbl <- tableGrob(table, theme = mytheme, rows = NULL)
-
 ebullition_forecasts <- trap_all %>%
   ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
   geom_ribbon(aes(ymin = exp(lower_90), ymax = exp(upper_90)), alpha = 0.2, fill = "midnightblue") +

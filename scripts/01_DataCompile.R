@@ -7,7 +7,7 @@
 if (!"pacman" %in% installed.packages()) install.packages("pacman")
 pacman::p_load(tidyverse, rjags, runjags, MCMCvis, lubridate, tidybayes,
                R2jags, ncdf4, reshape2, zoo, patchwork, hydroGOF, viridis,
-               imputeTS, devtools, lintr,scales)
+               imputeTS, devtools, lintr, scales)
 
 ### Pull together all of the observations ###
 

@@ -7,22 +7,21 @@
 # The JAGS MODELs
 model.lm19 = ("lm.txt")
 jagsscript = cat("
-model {  
-   mu ~ dnorm(3.22,1);  # intercet
-   beta ~ dnorm(0.797,1); # cat temp paramter
+model {
+   mu ~ dnorm(0,5);  # intercet
+   beta ~ dnorm(0,5); # cat temp paramter
    sd.pro ~ dunif(0.00001, 10000);
    tau.pro <-  pow(sd.pro, -2)
-   
+
    for(i in 2:N) {
-      predX[i] <- mu + C[i]*beta; 
+      predX[i] <- mu + C[i]*beta;
       X[i] ~ dnorm(predX[i],tau.pro); # Process variation
       Y[i] ~ dnorm(X[i], tau.obs[i]); # Observation variation
       C[i] ~ dnorm(C_mean[i],tau.pre[i]); # Covariate variation
    }
-}  
-", 
+}
+",
                  file = model.lm19)
-
 
 
 model.ar19 = ("ar2_model.txt")
@@ -62,7 +61,8 @@ model {
 
 
 # # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(as.Date("2019-06-17"),
+dates <- c(
+           as.Date("2019-06-17"),
            as.Date("2019-06-24"),
            as.Date("2019-07-01"),
            as.Date("2019-07-08"),
@@ -83,10 +83,14 @@ dates <- c(as.Date("2019-06-17"),
            as.Date("2019-10-23"),
            as.Date("2019-10-30"),
            as.Date("2019-11-07"))
-           
+
+ 
+t1 <- proc.time()
+
 # Sequence through the dates and the traps and execute the JAGS model
+
 for(s in 1:length(dates)){
-    
+
     # Select site and forecast date (#hashed out lines are for testing purposes)
     full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
       filter(time <= as.Date(dates[s]))%>%
@@ -222,7 +226,7 @@ for(s in 1:length(dates)){
     
     # Specify the parameters of interest from the model
     jags.params.ar = c("sd.pro", "mu2", "phi", "omega", "X", "Y", "D", "IC_forecast")
-    
+
     #Initialize parameters 
     nchain = 3
     chain_seeds <- c(200,800,1400)
@@ -244,7 +248,7 @@ for(s in 1:length(dates)){
                                variable.names = c("sd.pro", "mu2", "phi", "omega"),
                                n.iter = 10000, n.burnin = 3000)
 
-    plot(eval_ebu)
+    #plot(eval_ebu)
     gelman_ebu <- gelman.diag(eval_ebu)
     gelman_ebu <- as.data.frame(bind_cols(gelman_ebu$mpsrf,as.Date(dates[s])))
     names(gelman_ebu) <- c("mpsrf","forecast_date")
@@ -406,7 +410,7 @@ for(s in 1:length(dates)){
                                             mu2 = mean(parms$mu2),
                                             phi = mean(parms$phi),
                                             omega = mean(parms$omega),
-                                            Q = 1/sqrt(parms$sd.pro),
+                                            Q = sqrt(parms$sd.pro),
                                             n = Nmc)
     
     process_uncertainty <- t(process_uncertainty)
@@ -427,3 +431,6 @@ for(s in 1:length(dates)){
       mutate(forecast_date = start_forecast)
     saveRDS(process_partition, paste0("./forecast_output/model_process_",dates[s],".rds"))
 }
+
+dopar_loop <- proc.time()-t1
+print(dopar_loop[3]/60)

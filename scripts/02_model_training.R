@@ -110,9 +110,9 @@ j.lm.model   <- jags.model(file = model.lm17,
 eval_temp  <- coda.samples(model = j.lm.model,
                       variable.names = jags.params.lm.eval,
                       n.iter = 10000, n.burnin = 1000)
-plot(eval)
+plot(eval_temp)
 print("TEMP SCALE MODEL DIAGNOSTICS")
-print(gelman.diag(eval))
+print(gelman.diag(eval_temp))
 
 jags.params.lm = c("sd.pro", "mu", "beta", "X", "Y", "C")
 
@@ -131,6 +131,8 @@ temp_out_estimate <- jags.out %>%
 full_ebullition_model_alltrap_jags <- left_join(full_ebullition_model_alltrap_jags, temp_out_estimate[,c(1,2,3)], by = "time")%>%
   mutate(forecast_temp = ifelse(is.na(hobo_temp), mean, hobo_temp))%>%
   mutate(forecast_temp_sd = sd)
+
+y_nogaps <- full_ebullition_model_alltrap_jags$log_ebu_rate[!is.na(full_ebullition_model_alltrap_jags$log_ebu_rate)]
 
 jags.data.ar = list(X = full_ebullition_model_alltrap_jags$log_ebu_rate, 
                     tau.obs = 1/(full_ebullition_model_alltrap_jags$log_ebu_rate_sd ^ 2),
