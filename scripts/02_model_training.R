@@ -208,11 +208,11 @@ temp_out_parms <- eval_temp %>%
   ungroup()%>%
   select(sd.pro, mu, beta)%>%
   summarise(mean_sd.pro = mean(sd.pro),
-            sd_sd.pro = sd(sd.pro),
+            var_sd.pro = var(sd.pro),
             mean_mu = mean(mu),
-            sd.mu = sd(mu),
+            var.mu = var(mu),
             mean_beta = mean(beta),
-            sd_beta = sd(beta))
+            var_beta = var(beta))
 print(temp_out_parms)
 
 #* EBULLITION MODEL PARAMETERS ----
@@ -223,13 +223,13 @@ ebu_out_parms <- eval_ebu %>%
   ungroup()%>%
   select(sd.pro, mu2, phi, omega)%>%
   summarise(mean_sd.pro = mean(sd.pro),
-            sd_sd.pro = sd(sd.pro),
+            var_sd.pro =var(sd.pro),
             mean_mu2 = mean(mu2),
-            sd.mu2 = sd(mu2),
+            var.mu2 = var(mu2),
             mean_omega = mean(omega),
-            sd_omega = sd(omega),
+            var_omega = var(omega),
             mean_phi = mean(phi),
-            sd_phi = sd(phi))
+            var_phi = var(phi))
 
 print(ebu_out_parms)
 
@@ -239,8 +239,8 @@ null_out_parms <- jags.out %>%
   filter(.chain == 1) %>%
   rename(ensemble = .iteration) %>%
   summarise(mean_tau_add = mean(tau_add),
-            sd_tau_add = sd(tau_add),
+            var_tau_add = var(tau_add),
             mean_tau_init = mean(tau_init),
-            sd.tau_init = sd(tau_init))
+            var.tau_init = var(tau_init))
 
 print(null_out_parms)

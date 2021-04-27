@@ -1,9 +1,18 @@
 #################################################################
-# CH4cast                                                       #
+# CH4castR                                                      #
 # Ryan McClure                                                  #
 # Data Wrangling Script                                         #
 #################################################################
 
+####  FIRST TIME USERS NEED TO DOWNLOAD JAGS TO THEIR LOCAL COMPUTER #####
+
+# Use command/control + click on the link to go directly to the download
+
+# Jags download for Mac users can be found here: https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Mac%20OS%20X/
+# Jags download for PC users can be  found here: https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/
+# Jags download for Linux users can be found here: https://packages.qa.debian.org/j/jags.html
+
+# Download packages
 if (!"pacman" %in% installed.packages()) install.packages("pacman")
 pacman::p_load(tidyverse, rjags, runjags, MCMCvis, lubridate, tidybayes,
                R2jags, ncdf4, reshape2, zoo, patchwork, hydroGOF, viridis,

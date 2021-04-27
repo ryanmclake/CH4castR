@@ -3,14 +3,14 @@
 # Ryan McClure                                                  #
 # JAGS MODEL and FORECASTING SCRIPT                             #
 #################################################################
-
+set.seed(329)
 # The JAGS MODELs
 model.lm19 = ("lm.txt")
 jagsscript = cat("
 model {
-   mu ~ dnorm(0,5);  # intercet
-   beta ~ dnorm(0,5); # cat temp paramter
-   sd.pro ~ dunif(0.00001, 10000);
+   mu ~ dnorm(3.23,1/0.114);  # intercet
+   beta ~ dnorm(0.797,1/0.000270); # cat temp paramter
+   sd.pro ~ dunif(0.00001, 1000);
    tau.pro <-  pow(sd.pro, -2)
 
    for(i in 2:N) {
@@ -30,11 +30,11 @@ model {
    
    #priors===================================================
    
-   mu2 ~ dnorm(-0.426,1/0.307^2);
+   mu2 ~ dnorm(-0.426,1/0.0942);
    sd.pro ~ dunif(0.0001, 1000);
    tau.pro <-  pow(sd.pro, -2);
-   phi ~ dnorm(0.922,1/0.0346^2);
-   omega ~ dnorm(0.0306,1/0.0175^2);
+   phi ~ dnorm(0.922,1/0.00120);
+   omega ~ dnorm(0.0306,1/0.000307);
    
    #Informative priors on initial conditions based on first observation
    predY[1] <- X[1];
@@ -61,7 +61,8 @@ model {
 
 
 # # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(
+dates <- c(as.Date("2019-06-03"),
+           as.Date("2019-06-10"),
            as.Date("2019-06-17"),
            as.Date("2019-06-24"),
            as.Date("2019-07-01"),
@@ -94,8 +95,12 @@ for(s in 1:length(dates)){
     # Select site and forecast date (#hashed out lines are for testing purposes)
     full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
       filter(time <= as.Date(dates[s]))%>%
+      #filter(time <= as.Date("2019-06-03"))%>%
       filter(time >= as.Date("2019-05-27"))%>%
+      mutate(hobo_temp = ifelse(time<=as.Date("2019-06-17"),rnorm(length(.),mean = mean(full_ebullition_model_17[21:42,2]),sd = 1),hobo_temp),
+             hobo_temp_sd = ifelse(time<=as.Date("2019-06-17"),rnorm(length(.),mean = mean(full_ebullition_model_17[21:42,3]),sd = 0.5),hobo_temp_sd))%>%
       arrange(time)
+    
     
     for (i in colnames(full_ebullition_model_alltrap_jags[,c(2:10,12)])) {
       full_ebullition_model_alltrap_jags[,i] <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags[,i],option = "linear")   
@@ -248,7 +253,7 @@ for(s in 1:length(dates)){
                                variable.names = c("sd.pro", "mu2", "phi", "omega"),
                                n.iter = 10000, n.burnin = 3000)
 
-    #plot(eval_ebu)
+    plot(eval_ebu)
     gelman_ebu <- gelman.diag(eval_ebu)
     gelman_ebu <- as.data.frame(bind_cols(gelman_ebu$mpsrf,as.Date(dates[s])))
     names(gelman_ebu) <- c("mpsrf","forecast_date")

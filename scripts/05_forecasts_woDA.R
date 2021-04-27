@@ -1,34 +1,13 @@
 #################################################################
 # CH4cast version 2                                             #
 # Ryan McClure                                                  #
-# JAGS MODEL and FORECASTING SCRIPT                             #
+# JAGS MODEL and FORECASTING SCRIPT woDA                        #
 #################################################################
 
 
 # # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(as.Date("2019-06-17"),
-           as.Date("2019-06-24"),
-           as.Date("2019-07-01"),
-           as.Date("2019-07-08"),
-           as.Date("2019-07-15"),
-           as.Date("2019-07-22"),
-           as.Date("2019-07-29"),
-           as.Date("2019-08-05"),
-           as.Date("2019-08-12"),
-           as.Date("2019-08-19"),
-           as.Date("2019-08-28"),
-           as.Date("2019-09-02"),
-           as.Date("2019-09-11"),
-           as.Date("2019-09-20"),
-           as.Date("2019-09-27"),
-           as.Date("2019-10-02"),
-           as.Date("2019-10-11"),
-           as.Date("2019-10-16"),
-           as.Date("2019-10-23"),
-           as.Date("2019-10-30"),
-           as.Date("2019-11-07"))
 
-
+t1 <- proc.time()
 # Sequence through the dates and the traps and execute the JAGS model
 for(s in 1:length(dates)){
   
@@ -36,14 +15,14 @@ for(s in 1:length(dates)){
   full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
     filter(time <= as.Date(dates[s]))%>%
     filter(time >= as.Date("2019-05-27"))%>%
+    mutate(hobo_temp = ifelse(time<=as.Date("2019-06-17"),rnorm(length(.),mean = mean(full_ebullition_model_17[21:42,2]),sd = 1),hobo_temp),
+           hobo_temp_sd = ifelse(time<=as.Date("2019-06-17"),rnorm(length(.),mean = mean(full_ebullition_model_17[21:42,3]),sd = 0.5),hobo_temp_sd))%>%
     arrange(time)
   
   # fill in any missing covariate data This is done using impute TS --> but other models might be better
-  full_ebullition_model_alltrap_jags$water_temp_dam <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam,option = "linear")
-  full_ebullition_model_alltrap_jags$water_temp_dam_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$water_temp_dam_sd,option = "linear")
-  full_ebullition_model_alltrap_jags$hobo_temp <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$hobo_temp,option = "linear")
-  full_ebullition_model_alltrap_jags$hobo_temp_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$hobo_temp_sd,option = "linear")
-  full_ebullition_model_alltrap_jags$log_ebu_rate_sd <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags$log_ebu_rate_sd,option = "linear")
+  for (i in colnames(full_ebullition_model_alltrap_jags[,c(2:10,12)])) {
+    full_ebullition_model_alltrap_jags[,i] <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags[,i],option = "linear")   
+  }
   
   # start the data frame used in JAGS on the first day ebullition was collected from the upstream traps
   y_nogaps <- full_ebullition_model_alltrap_jags$log_ebu_rate[!is.na(full_ebullition_model_alltrap_jags$log_ebu_rate)]
@@ -254,3 +233,6 @@ for(s in 1:length(dates)){
     mutate(forecast_date = start_forecast)
   saveRDS(no_da_partition, paste0("./forecast_output/no_da_forecast_",dates[s],".rds"))
 }
+
+dopar_loop <- proc.time()-t1
+print(dopar_loop[3]/60)

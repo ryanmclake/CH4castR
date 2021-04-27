@@ -135,6 +135,7 @@ one_week_forecast_flare_NSE <- trap_all_partition %>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
   filter(row_number(forecast_date) == 2) %>%
+  filter(forecast_date < as.Date("2019-11-07"))%>%
   ungroup(.)%>%
   summarize(one_week_nse_flare_model = NSE(exp(mean), exp(log_ebu_rate)))
 
@@ -143,6 +144,7 @@ two_week_forecast_flare_NSE <- trap_all_partition %>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
   filter(row_number(forecast_date) == 3) %>%
+  filter(forecast_date < as.Date("2019-11-07"))%>%
   ungroup(.)%>%
   summarize(two_week_nse_flare_model = NSE(exp(mean), exp(log_ebu_rate)))
 
@@ -151,6 +153,7 @@ one_week_forecast_flare_RMSE <- trap_all_partition %>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
   filter(row_number(forecast_date) == 2) %>%
+  filter(forecast_date < as.Date("2019-11-07"))%>%
   ungroup(.)%>%
   summarize(one_week_rmse_flare_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
@@ -166,7 +169,7 @@ one_week_forecast_static_NSE <- trap_static_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 1) %>%
+  filter(row_number(forecast_date) == 2) %>%
   ungroup(.)%>%
   summarize(one_week_nse_static_model = NSE(exp(mean), exp(log_ebu_rate)))
 
@@ -174,7 +177,7 @@ two_week_forecast_static_NSE <- trap_static_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 2) %>%
+  filter(row_number(forecast_date) == 3) %>%
   ungroup(.)%>%
   summarize(two_week_nse_static_model = NSE(exp(mean), exp(log_ebu_rate)))
 
@@ -182,7 +185,7 @@ one_week_forecast_static_RMSE <- trap_static_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 1) %>%
+  filter(row_number(forecast_date) == 2) %>%
   ungroup(.)%>%
   summarize(one_week_rmse_static_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
@@ -190,7 +193,7 @@ two_week_forecast_static_RMSE <- trap_static_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 2) %>%
+  filter(row_number(forecast_date) == 3) %>%
   ungroup(.)%>%
   summarize(two_week_rmse_static_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
@@ -550,5 +553,3 @@ ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 10, 
   
   ggsave(path = ".", filename = "FIGURE6_partition.jpg", width = 12, height = 12, device='jpg', dpi=400)
 
-
-  

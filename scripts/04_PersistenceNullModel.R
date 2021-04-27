@@ -11,7 +11,8 @@ f_days = 16
 
 # Dates to forecast
 # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
+dates <- c(as.Date("2019-06-03"),as.Date("2019-06-10"),
+           as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
            as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
            as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
@@ -26,8 +27,8 @@ RandomWalk = "
 model{
   # Priors
   x[1] ~ dnorm(x_ic,tau_init)
-  tau_add ~ dgamma(6.02,1/2.60^2)
-  tau_init ~ dgamma(0.0836,1/0.153^2)
+  tau_add ~ dgamma(6.02,1/6.74)
+  tau_init ~ dgamma(0.0836,1/0.0235)
   
   # Process Model
   for(t in 2:n){
