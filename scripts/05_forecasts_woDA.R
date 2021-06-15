@@ -1,7 +1,7 @@
 #################################################################
 # CH4cast version 2                                             #
 # Ryan McClure                                                  #
-# JAGS MODEL and FORECASTING SCRIPT woDA                        #
+# JAGS MODEL and FORECASTING SCRIPT                             #
 #################################################################
 
 
@@ -142,9 +142,6 @@ for(s in 1:length(dates)){
   init <- list()
   for(i in 1:nchain){
     init[[i]] <- list(sd.pro = sd(diff(y_nogaps)),
-                      phi = rnorm(1,0.26, 0.05),
-                      mu2 = rnorm(1, -6.58, 1.27),
-                      omega = rnorm(1,0.38,0.05),
                       .RNG.name = "base::Wichmann-Hill", # so it is reproducible
                       .RNG.seed = chain_seeds[i])
   }

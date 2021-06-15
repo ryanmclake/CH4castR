@@ -12,13 +12,13 @@ RMSE = function(m, o){
 
 data_path <- "./forecast_output"
 
-trap_all <- list.files(data_path, pattern = "ebullition_predictive_interval_forecast_alltrap_20")%>%
+trap_all <- list.files(data_path, pattern = "ebu_forecast_")%>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist(fill = T)%>%
   group_by(forecast_date)%>%
   mutate(days = seq_along(time))%>%
   group_by(forecast_date)%>%
-  mutate(days = days-1)
+  mutate(weeks = days)
 
 trap_all_static <- list.files(data_path, pattern = "no_da_forecast_20")%>%
   map(~ readRDS(file.path(data_path, .))) %>% 
@@ -250,20 +250,15 @@ two_week_forecast_null_RMSE <- trap_null_partition %>%
 ### visualizations of the full ebullition forecasts (figure 3)
 
 ebullition_forecasts <- trap_all %>%
-  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
-  geom_ribbon(aes(ymin = exp(lower_90), ymax = exp(upper_90)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_80), ymax = exp(upper_80)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
+  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = log_ebu_rate, ymin = log_ebu_rate-log_ebu_rate_sd, ymax = log_ebu_rate+log_ebu_rate_sd), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
   labs(title = "A: Forecasts with data assimilation")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -283,7 +278,7 @@ static_forecasts <- trap_all_static %>%
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "B: Forecast model without data assimilation")+
+  labs(title = "B: Forecasts without data assimilation")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
@@ -308,7 +303,7 @@ null_forecasts <- trap_all_per_null %>%
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "C: Persistence null forecast model")+
+  labs(title = "C: Persistence null forecasts")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
@@ -360,7 +355,7 @@ daily_variance <- trap_all%>%
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
-  labs(title = "A: Daily state-space forecast model uncertainty")+
+  labs(title = "A: Daily forecast model uncertainty")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("Days into future")+
   scale_x_continuous(limits = c(-1,17), 
@@ -390,13 +385,13 @@ season_variance <- trap_all %>%
                       guide = guide_colourbar(barwidth = 20, barheight = 0.5, direction = "horizontal"))+
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  labs(title = "B: State-space forecast uncertainty across forecast season")+
+  labs(title = "B: Forecast uncertainty across 2019 forecast period")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
-        panel.grid.major.x = element_blank(),
         panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank(),
         legend.title = element_text(size=15, color = "black"),
@@ -453,7 +448,7 @@ AR <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_observe)) +
   labs(title = "A: Autoregressive parameter")+
   ylab(expression(paste(beta[1])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-01"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -471,7 +466,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
   labs(title = "B: Temperature parameter")+
   ylab(expression(paste(beta[2])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-01"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -482,9 +477,9 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-paramter = (AR+temp)/(process+plot_spacer())
+paramter = (AR+temp)
 paramter
-ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 10, device='jpg', dpi=400)
+ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 6, device='jpg', dpi=400)
 
 
 
@@ -493,7 +488,7 @@ ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 10, 
            geom_area(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
     theme_bw()+
-    labs(title = "A: Partitioned uncertainty of each forecast cycle")+
+    labs(title = "A: Partitioned uncertainty of each forecast")+
     ylab("Proportion to total variance")+
     xlab("Forecast cycle")+
     theme(axis.text=element_text(size=15, color = "black"),
@@ -512,7 +507,7 @@ ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 10, 
     geom_boxplot(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
     theme_bw()+
-    labs(title = "B: Aggregated uncertatinty sources during forecast season")+
+    labs(title = "B: Uncertatinty aggregated across forecast season")+
     ylab("Proportion to total variance")+
     xlab("Source of uncertainty")+
     theme(axis.text=element_text(size=15, color = "black"),
@@ -533,10 +528,12 @@ ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 10, 
     geom_area(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
     theme_bw()+
-    labs(title = "B: Forecast model uncertainty aggregated among all forecast cycles")+
+    scale_x_continuous(limits = c(0,16), 
+                       breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 
+                       labels = c("0", "1","2","3","4", "5", "6", "7", "8","9","10","11","12","13","14","15","16"))+
+    labs(title = "B: Horizon uncertatinty aggregated across all forecasts")+
     ylab("Proportion to total variance")+
     xlab("Days into future")+
-    xlim(c(0,16))+
     theme(axis.text=element_text(size=15, color = "black"),
           axis.title=element_text(size=15, color = "black"),
           panel.grid.major.x = element_blank(),

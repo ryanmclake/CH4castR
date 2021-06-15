@@ -8,16 +8,14 @@
 model.lm17 = ("lm17.txt")
 jagsscript = cat("
 model {  
-   mu ~ dnorm(0,1e-6);  # intercet
-   beta ~ dnorm(0,1e-6); # cat temp paramter
-   sd.pro ~ dunif(0.00001, 10000);
+   mu ~ dnorm(0,1e-6)  # intercet
+   beta ~ dnorm(0,1e-6) # cat temp paramter
+   sd.pro ~ dunif(0, 1000)
    tau.pro <-  pow(sd.pro, -2)
    
    for(i in 2:N) {
-      predX[i] <- mu + C[i]*beta; 
-      X[i] ~ dnorm(predX[i],tau.pro); # Process variation
-      Y[i] ~ dnorm(X[i], tau.obs[i]); # Observation variation
-      C[i] ~ dnorm(C_mean[i],tau.pre[i]); # Covariate variation
+      predX[i] <- mu + C_mean[i]*beta 
+      Y[i] ~ dnorm(predX[i],tau.pro) # model error
    }
 }  
 ", 
@@ -31,15 +29,14 @@ model {
    
    #priors===================================================
    
-   mu2 ~ dnorm(0,8);
-   sd.pro ~ dunif(0.0001, 1000);
-   tau.pro <-  pow(sd.pro, -2);
-   phi ~ dnorm(0,2);
-   omega ~ dnorm(0,8);
+   mu2 ~ dnorm(0,1e-6)
+   sd.pro ~ dunif(0, 1000)
+   tau.pro <-  pow(sd.pro, -2)
+   phi ~ dnorm(0,1e-6)
+   omega ~ dnorm(0,1e-6)
    
    #Informative priors on initial conditions based on first observation
-   predY[1] <- X[1];
-   Y[1] ~ dnorm(X[1], tau.obs[1]);
+   X[1] ~ dnorm(x_init, tau.obs[1])
    
    #end priors===============================================
    
@@ -47,38 +44,55 @@ model {
       
       #process model=============================================
       
-      predX[i] <- mu2 + phi*X[i-1] + omega*D[i];
-      X[i] ~ dnorm(predX[i],tau.pro);
+      predX[i] <- mu2 + phi*X[i-1] + omega*D[i]
+      X[i] ~ dnorm(predX[i],tau.pro)
       
       #end of process model======================================
       
       #data model================================================
       
-      Y[i] ~ dnorm(X[i], tau.obs[i]); # Observation variation
-      
-      #end of data model=========================================
+      Y[i] ~ dnorm(X[i], tau.obs[i]) # Observation variation
+            #end of data model=========================================
    }
-   IC_forecast <- X[N]}", file = model.ar17)
+  }", file = model.ar17)
 
 #* PERSISTENCE NULL MODEL ----
-
-RandomWalk = "
-model{
-  # Priors
-  x[1] ~ dnorm(x_ic,tau_init)
-  tau_add ~ dgamma(0.1,0.1)
-  tau_init ~ dgamma(0.1,0.1)
+RandomWalk <- nimbleCode({
   
-  # Process Model
+  #### Priors
+  x[1] ~ dnorm(x_ic, sd = sd_ic)
+  sd_add ~ dunif(0, 100)
+  
+  #### Process Model
   for(t in 2:n){
-    x[t]~dnorm(x[t-1],tau_add)
-    x_obs[t] ~ dnorm(x[t],tau_obs[t])
+    pred[t] <- x[t-1]
+    x[t] ~ dnorm(pred[t], sd = sd_add)
   }
-  # Data Model
-  for(i in 1:nobs){
-    y[i] ~ dnorm(x[y_wgaps_index[i]], tau_obs[y_wgaps_index[i]])
+  
+  #### Data Model
+  for(t in 1:n){
+    y[t] ~ dnorm(x[t], sd = sd_obs)
   }
-}"
+  
+})
+
+# RandomWalk = "
+# model{
+#   # Priors
+#   x[1] ~ dnorm(x_ic,tau_init)
+#   sd.pro ~ dunif(0, 1000)
+#   tau.pro <-  pow(sd.pro, -2)
+#   
+#   #Informative priors on initial conditions based on first observation
+#   predY[1] <- X[1]
+#   Y[1] ~ dnorm(X[1], tau.obs[1])
+#   
+#   # Process Model
+#   for(t in 2:n){
+#     x[t] ~ dnorm(x[t-1],tau.pro)
+#     Y[t] ~ dnorm(x[t],tau.obs[t])
+#   }
+# }"
 
 
 # MCMC ANALYSES FOR 2017 ----
@@ -86,7 +100,7 @@ model{
 #* FILTER 2017 AND IMPUTE COVARIATE ----
 
 full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap %>% 
-  filter(time <= as.Date("2017-10-23"))%>%
+  filter(time <= as.Date("2017-10-30"))%>%
   arrange(time)
 
 for (i in colnames(full_ebullition_model_alltrap_jags[,c(2:10,12)])) {
@@ -94,12 +108,43 @@ for (i in colnames(full_ebullition_model_alltrap_jags[,c(2:10,12)])) {
 }
 
 
+constants <- list(n = length(full_ebullition_model_alltrap_jags$time),
+                  x_ic = 0.0,
+                  sd_ic = 0.1,
+                  sd_obs = 1.0)
+
+data <- list(y = full_ebullition_model_alltrap_jags$log_ebu_rate)
+
+nchain = 3
+inits <- list()
+for(i in 1:nchain){
+  y.samp = sample(full_ebullition_model_alltrap_jags$log_ebu_rate, length(full_ebullition_model_alltrap_jags$log_ebu_rate), replace = TRUE)
+  inits[[i]] <- list(sd_add = sd(diff(y.samp)),
+                     x = log(full_ebullition_model_alltrap_jags$log_ebu_rate))
+}
+
+
+nimble_out <- nimbleMCMC(code = RandomWalk,
+                         data = data,
+                         inits = inits,
+                         constants = constants,
+                         monitors = c("sd_add",
+                                      "x",
+                                      "y"),
+                         niter = 11000,
+                         nchains = 3,
+                         samplesAsCodaMCMC = TRUE)
+
+
+
+
+
+
+
 #* RUNJAGS FOR 2017 TEMP SCALE ----
-jags.data.lm = list(X = full_ebullition_model_alltrap_jags$hobo_temp,
-                        tau.obs = 1/(full_ebullition_model_alltrap_jags$hobo_temp_sd ^ 2),
+jags.data.lm = list(Y= full_ebullition_model_alltrap_jags$hobo_temp,
                         N = nrow(full_ebullition_model_alltrap_jags),
-                        C_mean = full_ebullition_model_alltrap_jags$water_temp_dam,
-                        tau.pre = 1/(full_ebullition_model_alltrap_jags$water_temp_dam_sd ^ 2))
+                        C_mean = full_ebullition_model_alltrap_jags$water_temp_dam)
 
 jags.params.lm.eval = c("sd.pro", "mu", "beta", "tau.pro")
 
@@ -114,36 +159,29 @@ plot(eval_temp)
 print("TEMP SCALE MODEL DIAGNOSTICS")
 print(gelman.diag(eval_temp))
 
-jags.params.lm = c("sd.pro", "mu", "beta", "X", "Y", "C")
-
-jags.out   <- coda.samples(model = j.lm.model,
-                           variable.names = jags.params.lm, 
-                           n.iter = 10000, n.burnin = 1000)
-
-temp_out_estimate <- jags.out %>%
-  spread_draws(Y[day]) %>% filter(.chain == 1) %>% rename(ensemble = .iteration) %>%
-  mutate(time = full_ebullition_model_alltrap_jags$time[day]) %>%
-  ungroup() %>% select(time, Y, ensemble)%>%
-  group_by(time) %>% summarise(mean = mean(Y),sd = sd(Y),.groups = "drop")
-
 #* RUNJAGS FOR 2017 EBULLITION MODEL ----
 
-full_ebullition_model_alltrap_jags <- left_join(full_ebullition_model_alltrap_jags, temp_out_estimate[,c(1,2,3)], by = "time")%>%
-  mutate(forecast_temp = ifelse(is.na(hobo_temp), mean, hobo_temp))%>%
-  mutate(forecast_temp_sd = sd)
+full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap_jags%>%
+  select(time, log_ebu_rate, log_ebu_rate_sd, hobo_temp)%>%
+  na.omit(.)
 
 y_nogaps <- full_ebullition_model_alltrap_jags$log_ebu_rate[!is.na(full_ebullition_model_alltrap_jags$log_ebu_rate)]
+full_ebullition_model_alltrap_jags$log_ebu_rate[is.nan(as.numeric(full_ebullition_model_alltrap_jags$log_ebu_rate))] <- 1.0
 
-jags.data.ar = list(X = full_ebullition_model_alltrap_jags$log_ebu_rate, 
-                    tau.obs = 1/(full_ebullition_model_alltrap_jags$log_ebu_rate_sd ^ 2),
+jags.data.ar = list(x_init = full_ebullition_model_alltrap_jags$log_ebu_rate[1],
+                    Y = full_ebullition_model_alltrap_jags$log_ebu_rate, 
+                    tau.obs = 1/((full_ebullition_model_alltrap_jags$log_ebu_rate_sd)/sqrt(4)) ^ 2,
                     N = nrow(full_ebullition_model_alltrap_jags), 
-                    D = full_ebullition_model_alltrap_jags$forecast_temp)
+                    D = full_ebullition_model_alltrap_jags$hobo_temp)
 
 nchain = 3
 chain_seeds <- c(200,800,1400)
 init <- list()
 for(i in 1:nchain){
-  init[[i]] <- list(sd.pro = sd(diff(y_nogaps)),
+  init[[i]] <- list(sd.pro = 0.5,
+                    mu2 = -5,
+                    omega = 0.5, 
+                    phi = 0.2,
                     .RNG.name = "base::Wichmann-Hill",
                     .RNG.seed = chain_seeds[i])
 }
@@ -155,7 +193,7 @@ j.model   <- jags.model(file = model.ar17,
 
 eval_ebu  <- coda.samples(model = j.model,
                           variable.names = c("sd.pro", "mu2", "phi", "omega"),
-                          n.iter = 10000, n.burnin = 3000)
+                          n.iter = 30000, n.burnin = 10000)
 
 plot(eval_ebu)
 print("SS EBULLITION MODEL DIAGNOSTICS")

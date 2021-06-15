@@ -14,9 +14,9 @@
 
 # Download packages
 if (!"pacman" %in% installed.packages()) install.packages("pacman")
-pacman::p_load(tidyverse, rjags, runjags, MCMCvis, lubridate, tidybayes,
-               R2jags, ncdf4, reshape2, zoo, patchwork, hydroGOF, viridis,
-               imputeTS, devtools, lintr, scales)
+pacman::p_load(tidyverse, MCMCvis, lubridate, tidybayes,
+               ncdf4, reshape2, zoo, patchwork, hydroGOF, viridis,
+               imputeTS, devtools, lintr, scales, forecast, nimble)
 
 ### Pull together all of the observations ###
 
@@ -278,13 +278,14 @@ ebu <- read_csv("./observed/EDI_DATA_EBU_DIFF_DEPTH_2015_2019.csv") %>%
   rename(time = DateTime) %>%
   filter(Transect == "T1")%>%
   select(time, Site, Ebu_rate)%>%
-  mutate(log_ebu_rate = log(Ebu_rate),
+  mutate(log_ebu_rate = Ebu_rate,
          log_ebu_rate = ifelse(is.infinite(log_ebu_rate),NA,log_ebu_rate))%>%
   group_by(time) %>%
   summarize(log_ebu_rate_sd = sd(log_ebu_rate, na.rm = T),
             log_ebu_rate = mean(log_ebu_rate, na.rm = T))%>%
   select(time, log_ebu_rate, log_ebu_rate_sd)
 
+ebu$log_ebu_rate[is.nan(as.numeric(ebu$log_ebu_rate))] <- NA
 
 time <- as.data.frame(seq(from = as.Date("2017-05-07"), to = as.Date("2019-11-07"), by = "day"))%>%
   rename(time = `seq(from = as.Date(\"2017-05-07\"), to = as.Date(\"2019-11-07\"), by = \"day\")`)
@@ -304,13 +305,19 @@ full_ebullition_model_17 <- full_ebullition_model%>%
   rename(water_temp_dam = mean) %>%
   rename(water_temp_dam_sd = mean_sd)
 
+full_ebullition_model_18 <- full_ebullition_model%>%
+  filter(time >= "2018-05-07") %>%
+  filter(time <= "2018-10-29") %>%
+  rename(water_temp_dam = mean) %>%
+  rename(water_temp_dam_sd = mean_sd)
+
 full_ebullition_model_19 <- full_ebullition_model%>%
   filter(time >= "2019-05-27") %>%
   filter(time <= "2019-11-07") %>%
   rename(water_temp_dam = mean) %>%
   rename(water_temp_dam_sd = mean_sd)
 
-full_ebullition_model_alltrap <- bind_rows(full_ebullition_model_17, full_ebullition_model_19)%>%
+full_ebullition_model_alltrap <- bind_rows(full_ebullition_model_17, full_ebullition_model_18, full_ebullition_model_19)%>%
   rename(hobo_temp = temperature, hobo_temp_sd = temperature_sd)
 
 full_ebullition_model_alltrap$water_temp_dam[is.nan(as.numeric(full_ebullition_model_alltrap$water_temp_dam))] <- NA

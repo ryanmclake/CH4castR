@@ -11,7 +11,7 @@ f_days = 16
 
 # Dates to forecast
 # Dates to forecast in 2019 --> Based off of dates starting from when the day ebullition was measured
-dates <- c(as.Date("2019-06-03"),as.Date("2019-06-10"),
+dates <- c(as.Date("2019-06-10"),
            as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
            as.Date("2019-07-08"),as.Date("2019-07-15"),as.Date("2019-07-22"),
            as.Date("2019-07-29"),as.Date("2019-08-05"),as.Date("2019-08-12"),
