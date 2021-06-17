@@ -59,7 +59,8 @@ dates <- c(as.Date("2019-06-17"),as.Date("2019-06-24"),as.Date("2019-07-01"),
            as.Date("2019-08-19"),as.Date("2019-08-28"),as.Date("2019-09-02"),
            as.Date("2019-09-11"),as.Date("2019-09-20"),as.Date("2019-09-27"),
            as.Date("2019-10-02"),as.Date("2019-10-11"),as.Date("2019-10-16"),
-           as.Date("2019-10-23"),as.Date("2019-10-30"),as.Date("2019-11-07"))
+           as.Date("2019-10-23"),as.Date("2019-10-30"),as.Date("2019-11-07"),
+           as.Date("2019-11-14"),as.Date("2019-11-21"))
 
 
 t1 <- proc.time()
@@ -290,88 +291,161 @@ for(s in 1:length(dates)){
   
   saveRDS(final_forecast_sumarized, paste0("./forecast_output/ebu_forecast_",dates[s],".rds"))
   
-  # # parameter uncertainty
-  # param_uncertainty <- forecast_function(IC = mean(parms$IC_forecast),  ## sample IC
-  #                                     FLARE = mean(FLARE$mean),
-  #                                     mu2 = parms$mu2,
-  #                                     phi = parms$phi,
-  #                                     omega = parms$omega,
-  #                                     Q = 1/sqrt(parms$sd.pro),
-  #                                     n = Nmc)
-  # 
-  # param_uncertainty <- t(param_uncertainty)
-  # param_uncertainty <- cbind.data.frame(future, param_uncertainty)%>%
-  #   rename(time = future)
-  # 
-  # param_uncertainty <- melt(param_uncertainty, id = "time")
-  # 
-  # param_partition <- param_uncertainty %>%
-  #   group_by(time) %>%
-  #   summarise(mean = mean(value),
-  #             max = max(value),
-  #             min = min(value),
-  #             upper = quantile(value, 0.95),
-  #             lower = quantile(value, 0.05),
-  #             var = var(value),
-  #             sd = sd(value))%>%
-  #   mutate(forecast_date = start_forecast)
-  # saveRDS(param_partition, paste0("./forecast_output/model_parameter_",dates[s],".rds"))
-  # 
-  # 
-  # # driver data uncertainty
-  # driver_uncertainty <- forecast_function(IC = mean(parms$IC_forecast),  ## sample IC
-  #                                        FLARE = rnorm(FLARE$mean,FLARE$sd),
-  #                                        mu2 = mean(parms$mu2),
-  #                                        phi = mean(parms$phi),
-  #                                        omega = mean(parms$omega),
-  #                                        Q = 0,
-  #                                        n = Nmc)
-  # 
-  # driver_uncertainty <- t(driver_uncertainty)
-  # driver_uncertainty <- cbind.data.frame(future, driver_uncertainty)%>%
-  #   rename(time = future)
-  # 
-  # driver_uncertainty <- melt(driver_uncertainty, id = "time")
-  # 
-  # drive_partition <- driver_uncertainty %>%
-  #   group_by(time) %>%
-  #   summarise(mean = mean(value),
-  #             max = max(value),
-  #             min = min(value),
-  #             upper = quantile(value, 0.95),
-  #             lower = quantile(value, 0.05),
-  #             var = var(value),
-  #             sd = sd(value))%>%
-  #   mutate(forecast_date = start_forecast)
-  # saveRDS(drive_partition, paste0("./forecast_output/model_driver_",dates[s],".rds"))
-  # 
-  # # process uncertainty
-  # process_uncertainty <- forecast_function(IC = mean(parms$IC_forecast),  ## sample IC
-  #                                         FLARE = mean(FLARE$mean),
-  #                                         mu2 = mean(parms$mu2),
-  #                                         phi = mean(parms$phi),
-  #                                         omega = mean(parms$omega),
-  #                                         Q = 1/sqrt(parms$sd.pro),
-  #                                         n = Nmc)
-  # 
-  # process_uncertainty <- t(process_uncertainty)
-  # process_uncertainty <- cbind.data.frame(future, process_uncertainty)%>%
-  #   rename(time = future)
-  # 
-  # process_uncertainty <- melt(process_uncertainty, id = "time")
-  # 
-  # process_partition <- process_uncertainty %>%
-  #   group_by(time) %>%
-  #   summarise(mean = mean(value),
-  #             max = max(value),
-  #             min = min(value),
-  #             upper = quantile(value, 0.95),
-  #             lower = quantile(value, 0.05),
-  #             var = var(value),
-  #             sd = sd(value))%>%
-  #   mutate(forecast_date = start_forecast)
-  # saveRDS(process_partition, paste0("./forecast_output/model_process_",dates[s],".rds"))
+  ### BELOW partitions uncertainty ###
+  # parameter uncertainty
+  parm_ebu_forecast_1wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+                                             FLARE = rowMeans(forecast_1wk),
+                                             mu2 = parms$`pars[1]`,
+                                             phi = parms$`pars[2]`,
+                                             omega = parms$`pars[3]`,
+                                             Q = 0,
+                                             ndays = as.numeric(ndays))
+  
+  parm_ebu_forecast_2wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+                                             FLARE = rowMeans(forecast_2wk),
+                                             mu2 = parms$`pars[1]`,
+                                             phi = parms$`pars[2]`,
+                                             omega = parms$`pars[3]`,
+                                             Q = 0,
+                                             ndays = as.numeric(ndays))
+  
+  parm_ebu_forecast <- rbind(parm_ebu_forecast_1wk, parm_ebu_forecast_2wk)%>% unname(.)%>%
+    cbind.data.frame(time,.)
+  
+  
+  observed <- cbind(observed_date, t(rnorm(210,IC[,1], IC[,2])))
+  
+  parm_ebu_forecast <- bind_rows(observed, parm_ebu_forecast)
+  
+  parm_ebu_forecast_raw <- melt(parm_ebu_forecast, id = "time")
+  
+  parm_final_forecast_sumarized <- parm_ebu_forecast_raw %>%
+    group_by(time) %>%
+    summarise(mean = mean(value),
+              max = max(value),
+              min = min(value),
+              upper_95 = quantile(value, 0.95, na.rm = T),
+              lower_95 = quantile(value, 0.05, na.rm = T),
+              var = var(value))%>%
+    mutate(forecast_date = start_forecast)
+  
+  saveRDS(parm_final_forecast_sumarized, paste0("./forecast_output/model_parameter",dates[s],".rds"))
 
+
+  # driver data uncertainty
+  driv_ebu_forecast_1wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+                                             FLARE = forecast_1wk,
+                                             mu2 = mean(parms$`pars[1]`),
+                                             phi = mean(parms$`pars[2]`),
+                                             omega = mean(parms$`pars[3]`),
+                                             Q = 0,
+                                             ndays = as.numeric(ndays))
+  
+  driv_ebu_forecast_2wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+                                             FLARE = forecast_2wk,
+                                             mu2 = mean(parms$`pars[1]`),
+                                             phi = mean(parms$`pars[2]`),
+                                             omega = mean(parms$`pars[3]`),
+                                             Q = 0,
+                                             ndays = as.numeric(ndays))
+  
+  driv_ebu_forecast <- rbind(driv_ebu_forecast_1wk, driv_ebu_forecast_2wk)%>% unname(.)%>%
+    cbind.data.frame(time,.)
+  
+  
+  observed <- cbind(observed_date, t(rnorm(210,IC[,1], IC[,2])))
+  
+  driv_ebu_forecast <- bind_rows(observed, driv_ebu_forecast)
+  
+  driv_ebu_forecast_raw <- melt(driv_ebu_forecast, id = "time")
+  
+  driv_final_forecast_sumarized <- driv_ebu_forecast_raw %>%
+    group_by(time) %>%
+    summarise(mean = mean(value),
+              max = max(value),
+              min = min(value),
+              upper_95 = quantile(value, 0.95, na.rm = T),
+              lower_95 = quantile(value, 0.05, na.rm = T),
+              var = var(value))%>%
+    mutate(forecast_date = start_forecast)
+  saveRDS(driv_final_forecast_sumarized, paste0("./forecast_output/model_driver_",dates[s],".rds"))
+
+  # process uncertainty
+  proc_ebu_forecast_1wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+                                             FLARE = forecast_1wk,
+                                             mu2 = mean(parms$`pars[1]`),
+                                             phi = mean(parms$`pars[2]`),
+                                             omega = mean(parms$`pars[3]`),
+                                             Q = parms$sd.pro,
+                                             ndays = as.numeric(ndays))
+  
+  proc_ebu_forecast_2wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+                                             FLARE = forecast_2wk,
+                                             mu2 = mean(parms$`pars[1]`),
+                                             phi = mean(parms$`pars[2]`),
+                                             omega = mean(parms$`pars[3]`),
+                                             Q = parms$sd.pro,
+                                             ndays = as.numeric(ndays))
+  
+  proc_ebu_forecast <- rbind(proc_ebu_forecast_1wk, proc_ebu_forecast_2wk)%>% unname(.)%>%
+    cbind.data.frame(time,.)
+  
+  
+  observed <- cbind(observed_date, t(rnorm(210,IC[,1], IC[,2])))
+  
+  proc_ebu_forecast <- bind_rows(observed, proc_ebu_forecast)
+  
+  proc_ebu_forecast_raw <- melt(proc_ebu_forecast, id = "time")
+  
+  proc_ebu_forecast_sumarized <- proc_ebu_forecast_raw %>%
+    group_by(time) %>%
+    summarise(mean = mean(value),
+              max = max(value),
+              min = min(value),
+              upper_95 = quantile(value, 0.95, na.rm = T),
+              lower_95 = quantile(value, 0.05, na.rm = T),
+              var = var(value))%>%
+    mutate(forecast_date = start_forecast)
+  saveRDS(proc_ebu_forecast_sumarized, paste0("./forecast_output/model_process_",dates[s],".rds"))
+
+  
+  # initial conditions
+  inic_ebu_forecast_1wk <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
+                                             FLARE = rowMeans(forecast_1wk),
+                                             mu2 = mean(parms$`pars[1]`),
+                                             phi = mean(parms$`pars[2]`),
+                                             omega = mean(parms$`pars[3]`),
+                                             Q = parms$sd.pro,
+                                             ndays = as.numeric(ndays))
+  
+  inic_ebu_forecast_2wk <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
+                                             FLARE = rowMeans(forecast_2wk),
+                                             mu2 = mean(parms$`pars[1]`),
+                                             phi = mean(parms$`pars[2]`),
+                                             omega = mean(parms$`pars[3]`),
+                                             Q = parms$sd.pro,
+                                             ndays = as.numeric(ndays))
+  
+  inic_ebu_forecast <- rbind(inic_ebu_forecast_1wk, inic_ebu_forecast_2wk)%>% unname(.)%>%
+    cbind.data.frame(time,.)
+  
+  
+  observed <- cbind(observed_date, t(rnorm(210,IC[,1], IC[,2])))
+  
+  inic_ebu_forecast <- bind_rows(observed, inic_ebu_forecast)
+  
+  inic_ebu_forecast_raw <- melt(inic_ebu_forecast, id = "time")
+  
+  inic_ebu_forecast_sumarized <- inic_ebu_forecast_raw %>%
+    group_by(time) %>%
+    summarise(mean = mean(value),
+              max = max(value),
+              min = min(value),
+              upper_95 = quantile(value, 0.95, na.rm = T),
+              lower_95 = quantile(value, 0.05, na.rm = T),
+              var = var(value))%>%
+    mutate(forecast_date = start_forecast)
+  saveRDS(inic_ebu_forecast_sumarized, paste0("./forecast_output/model_process_",dates[s],".rds"))
 }
 
 loop <- proc.time()-t1
