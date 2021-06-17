@@ -5,7 +5,6 @@ model {
    
    mu2 ~ dnorm(0,1e-6)
    sd.pro ~ dunif(0, 1000)
-   tau.pro <-  pow(sd.pro, -2)
    phi ~ dnorm(0,1e-6)
    omega ~ dnorm(0,1e-6)
    
@@ -18,8 +17,10 @@ model {
       
       #process model=============================================
       
+      tau.pro[i] <- 1/((sd.pro*ndays[i])*(sd.pro*ndays[i]))
       predX[i] <- mu2 + phi*X[i-1] + omega*D[i]
-      X[i] ~ dnorm(predX[i],tau.pro)
+      X[i] ~ dnorm(predX[i],tau.pro[i])
+      
       
       #end of process model======================================
       

@@ -229,36 +229,19 @@ two_week_forecast_null_RMSE <- trap_null_partition %>%
   ungroup(.)%>%
   summarize(two_week_RMSE_null_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
-# one_week_forecast_noaa_nse <- trap_noaa_partition %>%
-#   select(time, mean, log_ebu_rate, forecast_date)%>%
-#   na.omit(.)%>%
-#   group_by(forecast_date)%>%
-#   filter(row_number(forecast_date) == 2) %>%
-#   ungroup(.)%>%
-#   summarize(one_week_nse_noaa_model = NSE(exp(mean), exp(log_ebu_rate)))
-# 
-# two_week_forecast_noaa_nse <- trap_noaa_partition %>%
-#   select(time, mean, log_ebu_rate, forecast_date)%>%
-#   na.omit(.)%>%
-#   group_by(forecast_date)%>%
-#   filter(row_number(forecast_date) == 3) %>%
-#   ungroup(.)%>%
-#   summarize(two_week_nse_noaa_model = NSE(exp(mean), exp(log_ebu_rate)))
-
-
 ### FIGURES ###
 ### visualizations of the full ebullition forecasts (figure 3)
 
 ebullition_forecasts <- trap_all %>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2, fill = "midnightblue") +
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = log_ebu_rate, ymin = log_ebu_rate-log_ebu_rate_sd, ymax = log_ebu_rate+log_ebu_rate_sd), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
   labs(title = "A: Forecasts with data assimilation")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -351,18 +334,13 @@ fig3
 ggsave(path = ".", filename = "FIGURE3_forecasts.jpg", width = 18, height = 12, device='jpg', dpi=400)
 
 daily_variance <- trap_all%>%
-  ggplot(., aes(x = days, y = exp(var), group = days)) +
+  ggplot(., aes(x = weeks, y = var, group = weeks)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
-  labs(title = "A: Daily forecast model uncertainty")+
+  labs(title = "A: Forecast uncertainty")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
-  xlab("Days into future")+
-  scale_x_continuous(limits = c(-1,17), 
-                   breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16), 
-                   labels = c("0", "1","2","3","4", "5", "6", "7", "8","9","10","11","12","13","14","15","16"))+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
+  xlab("Weeks into future")+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -376,15 +354,13 @@ daily_variance <- trap_all%>%
 
 season_variance <- trap_all %>%
   rename(`Days into future` = days)%>%
-  ggplot(., aes(x = time, y = exp(var), group = `Days into future`)) +
+  ggplot(., aes(x = time, y = var, group = `Days into future`)) +
   geom_line(aes(color = `Days into future`), size = 1)+
-  geom_line(aes(x = time, y = exp(var), group = forecast_date), size = 0.5)+
+  geom_line(aes(x = time, y = var, group = forecast_date), size = 0.5)+
   theme_bw()+
-  scale_color_viridis(option = "C", limits = c(0,16), 
-                      breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16),
+  scale_color_viridis(option = "C", limits = c(0,4), 
+                      breaks = c(1,2,3),
                       guide = guide_colourbar(barwidth = 20, barheight = 0.5, direction = "horizontal"))+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
   labs(title = "B: Forecast uncertainty across 2019 forecast period")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+

@@ -1,12 +1,12 @@
 
 model {  
-   mu ~ dnorm(0,1e-6)  # intercet
-   beta ~ dnorm(0,1e-6) # cat temp paramter
-   sd.pro ~ dunif(0, 1000)
-   tau.pro <-  pow(sd.pro, -2)
    
-   for(i in 2:N) {
-      predX[i] <- mu + C_mean[i]*beta 
-      Y[i] ~ dnorm(predX[i],tau.pro) # model error
+   pars ~ dmnorm(prior_mean,prior_inv_cov)
+   sd.pro ~ dlnorm(proc_mean, proc_prec)
+   
+   for(i in 2:N){
+      tau.pro[i] <- 1/((sd.pro*ndays[i])*(sd.pro*ndays[i]))
+      predX[i] <- pars[1] + C_mean[i]*pars[2] 
+      Y[i] ~ dnorm(predX[i],tau.pro[i])
    }
 }  

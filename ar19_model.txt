@@ -2,12 +2,8 @@
 model {  
    
    #priors===================================================
-   
-   mu2 ~ dnorm(0,1e-6)
-   sd.pro ~ dunif(0, 1000)
-   tau.pro <-  pow(sd.pro, -2)
-   phi ~ dnorm(0,1e-6)
-   omega ~ dnorm(0,1e-6)
+   pars ~ dmnorm(prior_mean,prior_inv_cov)
+   sd.pro ~ dlnorm(proc_mean, proc_prec)
    
    #Informative priors on initial conditions based on first observation
    X[1] ~ dnorm(x_init, tau.obs[1])
@@ -18,8 +14,9 @@ model {
       
       #process model=============================================
       
-      predX[i] <- mu2 + phi*X[i-1] + omega*D[i]
-      X[i] ~ dnorm(predX[i],tau.pro)
+      tau.pro[i] <- 1/((sd.pro*ndays[i])*(sd.pro*ndays[i]))
+      predX[i] <- pars[1] + pars[2]*X[i-1] + pars[3]*D[i]
+      X[i] ~ dnorm(predX[i],tau.pro[i])
       
       #end of process model======================================
       
