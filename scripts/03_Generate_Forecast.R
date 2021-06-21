@@ -289,7 +289,7 @@ for(s in 1:length(dates)){
               var = var(value))%>%
     mutate(forecast_date = start_forecast)
   
-  saveRDS(final_forecast_sumarized, paste0("./forecast_output/ebu_forecast_",dates[s],".rds"))
+  saveRDS(final_forecast_sumarized, paste0("./forecast_output/ebu_forecast_wDA_",dates[s],".rds"))
   
   ### BELOW partitions uncertainty ###
   # parameter uncertainty
@@ -446,7 +446,50 @@ for(s in 1:length(dates)){
               var = var(value))%>%
     mutate(forecast_date = start_forecast)
   saveRDS(inic_ebu_forecast_sumarized, paste0("./forecast_output/model_initial_",dates[s],".rds"))
-}
+
+  
+  ### Generate the forecasts without data assimilation
+  
+  parm_17 <- sample_n(ebu_out_parms, 210, replace=TRUE)
+  
+  
+  ebu_forecast_1wk_nDA <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
+                                        FLARE = forecast_1wk,
+                                        mu2 = parm_17$mu2,
+                                        phi = parm_17$phi,
+                                        omega = parm_17$omega,
+                                        Q = parm_17$sd.pro,
+                                        ndays = as.numeric(ndays))
+  
+  ebu_forecast_2wk_nDA <- forecast_function(IC = ebu_forecast_1wk,  ## sample IC
+                                        FLARE = forecast_2wk,
+                                        mu2 = parms$`pars[1]`,
+                                        phi = parms$`pars[2]`,
+                                        omega = parms$`pars[3]`,
+                                        Q = parms$sd.pro,
+                                        ndays = as.numeric(ndays))
+  
+  ebu_forecast_nDA <- rbind(ebu_forecast_1wk_nDA, ebu_forecast_2wk_nDA)%>% unname(.)%>%
+    cbind(time,.)
+  
+  observed <- cbind(observed_date, t(rnorm(210,IC[,1], IC[,2])))
+  
+  ebu_forecast_nDA <- bind_rows(observed, ebu_forecast_nDA)
+  
+  ebu_forecast_raw_nDA <- melt(ebu_forecast_nDA, id = "time")
+  
+  ebu_forecast_nDA_summarized <- ebu_forecast_raw_nDA %>%
+    group_by(time) %>%
+    summarise(mean = mean(value),
+              max = max(value),
+              min = min(value),
+              upper_95 = quantile(value, 0.95, na.rm = T),
+              lower_95 = quantile(value, 0.05, na.rm = T),
+              var = var(value))%>%
+    mutate(forecast_date = start_forecast)
+  saveRDS(ebu_forecast_nDA_summarized, paste0("./forecast_output/ebu_forecast_nDA_",dates[s],".rds"))
+  
+  }
 
 loop <- proc.time()-t1
 print(loop[3]/60)
