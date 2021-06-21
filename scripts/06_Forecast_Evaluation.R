@@ -12,7 +12,7 @@ RMSE = function(m, o){
 
 data_path <- "./forecast_output"
 
-trap_all <- list.files(data_path, pattern = "ebu_forecast_")%>%
+trap_all <- list.files(data_path, pattern = "ebu_forecast_wDA_")%>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist(fill = T)%>%
   group_by(forecast_date)%>%
@@ -21,7 +21,7 @@ trap_all <- list.files(data_path, pattern = "ebu_forecast_")%>%
   mutate(weeks = days)%>%
   mutate(weeks = weeks-1)%>%select(-days)
 
-trap_all_static <- list.files(data_path, pattern = "no_da_forecast_20")%>%
+trap_all_static <- list.files(data_path, pattern = "ebu_forecast_nDA_")%>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist(fill = T)%>%
   group_by(forecast_date)%>%
@@ -155,38 +155,29 @@ two_week_forecast_wDA_eval <- trap_all_partition %>%
   summarize(two_week_nse_flare_model = NSE(mean, ebu_rate),
             two_week_rmse_flare_model = RMSE(mean, ebu_rate))
 
-
-one_week_forecast_static_NSE <- trap_static_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
+one_week_forecast_nDA_eval <- trap_static_partition %>%
+  select(time, mean, ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
   filter(row_number(forecast_date) == 2) %>%
+  filter(forecast_date < as.Date("2019-11-07"))%>%
   ungroup(.)%>%
-  summarize(one_week_nse_static_model = NSE(exp(mean), exp(log_ebu_rate)))
+  summarize(one_week_nse_flare_model = NSE(mean, ebu_rate),
+            one_week_rmse_flare_model = RMSE(mean, ebu_rate))
 
-two_week_forecast_static_NSE <- trap_static_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
+two_week_forecast_nDA_eval <- trap_static_partition %>%
+  select(time, mean, ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
   filter(row_number(forecast_date) == 3) %>%
+  filter(forecast_date < as.Date("2019-11-07"))%>%
   ungroup(.)%>%
-  summarize(two_week_nse_static_model = NSE(exp(mean), exp(log_ebu_rate)))
+  summarize(two_week_nse_flare_model = NSE(mean, ebu_rate),
+            two_week_rmse_flare_model = RMSE(mean, ebu_rate))
 
-one_week_forecast_static_RMSE <- trap_static_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
-  na.omit(.)%>%
-  group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 2) %>%
-  ungroup(.)%>%
-  summarize(one_week_rmse_static_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
-two_week_forecast_static_RMSE <- trap_static_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
-  na.omit(.)%>%
-  group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 3) %>%
-  ungroup(.)%>%
-  summarize(two_week_rmse_static_model = RMSE(exp(mean), exp(log_ebu_rate)))
+
+
 
 one_week_forecast_null_nse <- trap_null_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
@@ -223,7 +214,7 @@ two_week_forecast_null_RMSE <- trap_null_partition %>%
 ### FIGURES ###
 ### visualizations of the full ebullition forecasts (figure 3)
 
-ebullition_forecasts <- trap_all %>%
+ebullition_forecasts_wDA <- trap_all %>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
@@ -243,21 +234,16 @@ ebullition_forecasts <- trap_all %>%
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-static_forecasts <- trap_all_static %>%
-  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
-  geom_ribbon(aes(ymin = exp(lower_90), ymax = exp(upper_90)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_80), ymax = exp(upper_80)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_70), ymax = exp(upper_70)), alpha = 0.2, fill = "midnightblue") +
-  geom_ribbon(aes(ymin = exp(lower_60), ymax = exp(upper_60)), alpha = 0.2, fill = "midnightblue") +
+ebullition_forecasts_nDA <- trap_all_static %>%
+  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(log_ebu_rate), ymin = exp(log_ebu_rate)-exp(log_ebu_rate_sd), ymax = exp(log_ebu_rate)+exp(log_ebu_rate_sd)), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "B: Forecasts without data assimilation")+
+  labs(title = "A: Forecasts with data assimilation")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-17")))+
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
