@@ -238,7 +238,7 @@ for(s in 1:length(dates)){
   
   
   forecast_function <- function(IC, mu2, phi, omega, FLARE, Q, ndays){
-    est <- mu2 + (phi * IC) + (omega * FLARE) + rnorm(nrow(full_ebullition_model_alltrap_jags),0, sd = Q*ndays)
+    est <- mu2 + (phi * IC) + (omega * FLARE) + rnorm(210, 0, sd = Q*ndays)
     return(est)
   }
   
@@ -301,7 +301,7 @@ for(s in 1:length(dates)){
                                              Q = 0,
                                              ndays = as.numeric(ndays))
   
-  parm_ebu_forecast_2wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+  parm_ebu_forecast_2wk <- forecast_function(IC = mean(parm_ebu_forecast_1wk), ## sample IC
                                              FLARE = rowMeans(forecast_2wk),
                                              mu2 = parms$`pars[1]`,
                                              phi = parms$`pars[2]`,
@@ -341,7 +341,7 @@ for(s in 1:length(dates)){
                                              Q = 0,
                                              ndays = as.numeric(ndays))
   
-  driv_ebu_forecast_2wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
+  driv_ebu_forecast_2wk <- forecast_function(IC = rowMeans(driv_ebu_forecast_1wk), ## sample IC
                                              FLARE = forecast_2wk,
                                              mu2 = mean(parms$`pars[1]`),
                                              phi = mean(parms$`pars[2]`),
@@ -372,15 +372,15 @@ for(s in 1:length(dates)){
 
   # process uncertainty
   proc_ebu_forecast_1wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
-                                             FLARE = forecast_1wk,
+                                             FLARE = as.numeric(rowMeans(forecast_1wk)),
                                              mu2 = mean(parms$`pars[1]`),
                                              phi = mean(parms$`pars[2]`),
                                              omega = mean(parms$`pars[3]`),
                                              Q = parms$sd.pro,
                                              ndays = as.numeric(ndays))
   
-  proc_ebu_forecast_2wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
-                                             FLARE = forecast_2wk,
+  proc_ebu_forecast_2wk <- forecast_function(IC = mean(proc_ebu_forecast_1wk), ## sample IC
+                                             FLARE = as.numeric(rowMeans(forecast_2wk)),
                                              mu2 = mean(parms$`pars[1]`),
                                              phi = mean(parms$`pars[2]`),
                                              omega = mean(parms$`pars[3]`),
@@ -415,15 +415,15 @@ for(s in 1:length(dates)){
                                              mu2 = mean(parms$`pars[1]`),
                                              phi = mean(parms$`pars[2]`),
                                              omega = mean(parms$`pars[3]`),
-                                             Q = parms$sd.pro,
+                                             Q = 0,
                                              ndays = as.numeric(ndays))
   
-  inic_ebu_forecast_2wk <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
+  inic_ebu_forecast_2wk <- forecast_function(IC = inic_ebu_forecast_1wk, ## sample IC
                                              FLARE = rowMeans(forecast_2wk),
                                              mu2 = mean(parms$`pars[1]`),
                                              phi = mean(parms$`pars[2]`),
                                              omega = mean(parms$`pars[3]`),
-                                             Q = parms$sd.pro,
+                                             Q = 0,
                                              ndays = as.numeric(ndays))
   
   inic_ebu_forecast <- rbind(inic_ebu_forecast_1wk, inic_ebu_forecast_2wk)%>% unname(.)%>%
@@ -445,7 +445,7 @@ for(s in 1:length(dates)){
               lower_95 = quantile(value, 0.05, na.rm = T),
               var = var(value))%>%
     mutate(forecast_date = start_forecast)
-  saveRDS(inic_ebu_forecast_sumarized, paste0("./forecast_output/model_process_",dates[s],".rds"))
+  saveRDS(inic_ebu_forecast_sumarized, paste0("./forecast_output/model_initial_",dates[s],".rds"))
 }
 
 loop <- proc.time()-t1

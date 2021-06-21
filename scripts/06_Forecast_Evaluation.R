@@ -18,7 +18,8 @@ trap_all <- list.files(data_path, pattern = "ebu_forecast_")%>%
   group_by(forecast_date)%>%
   mutate(days = seq_along(time))%>%
   group_by(forecast_date)%>%
-  mutate(weeks = days)
+  mutate(weeks = days)%>%
+  mutate(weeks = weeks-1)%>%select(-days)
 
 trap_all_static <- list.files(data_path, pattern = "no_da_forecast_20")%>%
   map(~ readRDS(file.path(data_path, .))) %>% 
@@ -50,11 +51,13 @@ gelman_ebu_model <- list.files(data_path, pattern = "ebu_model_gelman_diagnostic
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()
 
+gelman_ebu_model <- as.data.frame(gelman_ebu_model)
+
 
 gelman <- ggplot(gelman_ebu_model, aes(forecast_date, mpsrf))+
   geom_line(size = 1.2)+
-  geom_hline(yintercept = 1.1, lty = "dashed")+
-  ylim(c(1,1.15))+
+  geom_hline(yintercept = 1.005, lty = "dashed")+
+  ylim(c(1,1.01))+
   theme_bw()+
   ylab("Multivariate potential scale reduction factors")+
   xlab("Forecast date")
@@ -63,7 +66,7 @@ ggsave(path = ".", filename = "SI_gelman.tiff", width = 6, height = 6, device='t
 
 
 ### Parameter estimates ###
-trap_all_parameters <- list.files(data_path, pattern = "ebullition_parameters_") %>%
+trap_all_parameters <- list.files(data_path, pattern = "model_parameter") %>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist() %>%
   group_by(forecast_date)%>%
@@ -79,7 +82,7 @@ trap_all_parameters <- list.files(data_path, pattern = "ebullition_parameters_")
 
 ##### UNCERTAINTY PARTITIONING DATA ####
 
-trap_all_IC <- list.files(data_path, pattern = "initial_condition_") %>%
+trap_all_IC <- list.files(data_path, pattern = "model_initial_") %>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()%>%
   select(time, forecast_date, var)%>%
@@ -97,7 +100,7 @@ trap_all_DRI <- list.files(data_path, pattern = "model_driver_") %>%
   select(time, forecast_date, var)%>%
   rename(var_dri = var)
 
-trap_all_PAR <- list.files(data_path, pattern = "model_parameter_") %>%
+trap_all_PAR <- list.files(data_path, pattern = "model_parameter") %>%
   map(~ readRDS(file.path(data_path, .))) %>% 
   data.table::rbindlist()%>%
   select(time, forecast_date, var)%>%
@@ -124,46 +127,34 @@ all_partitioned_melt <- all_partitioned%>%
   melt(., id = c("time","forecast_date","days","day_in_future"))
 
 
-trap_all_partition <- left_join(trap_all, full_ebullition_model_alltrap, by = c("time"))
+trap_all_partition <- left_join(trap_all, full_ebullition_model_alltrap_jags, by = c("time"))
+
 trap_static_partition <- left_join(trap_all_static, full_ebullition_model_alltrap, by = c("time"))
+
 trap_null_partition <- left_join(trap_all_per_null, full_ebullition_model_alltrap, by = c("time"))
 #trap_noaa_partition <- left_join(trap_all_noaa, full_ebullition_model_alltrap, by = c("time"))
 
 
-one_week_forecast_flare_NSE <- trap_all_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
+one_week_forecast_wDA_eval <- trap_all_partition %>%
+  select(time, mean, ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
   filter(row_number(forecast_date) == 2) %>%
   filter(forecast_date < as.Date("2019-11-07"))%>%
   ungroup(.)%>%
-  summarize(one_week_nse_flare_model = NSE(exp(mean), exp(log_ebu_rate)))
+  summarize(one_week_nse_flare_model = NSE(mean, ebu_rate),
+            one_week_rmse_flare_model = RMSE(mean, ebu_rate))
 
-two_week_forecast_flare_NSE <- trap_all_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
+two_week_forecast_wDA_eval <- trap_all_partition %>%
+  select(time, mean, ebu_rate, forecast_date)%>%
   na.omit(.)%>%
   group_by(forecast_date)%>%
   filter(row_number(forecast_date) == 3) %>%
   filter(forecast_date < as.Date("2019-11-07"))%>%
   ungroup(.)%>%
-  summarize(two_week_nse_flare_model = NSE(exp(mean), exp(log_ebu_rate)))
+  summarize(two_week_nse_flare_model = NSE(mean, ebu_rate),
+            two_week_rmse_flare_model = RMSE(mean, ebu_rate))
 
-one_week_forecast_flare_RMSE <- trap_all_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
-  na.omit(.)%>%
-  group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 2) %>%
-  filter(forecast_date < as.Date("2019-11-07"))%>%
-  ungroup(.)%>%
-  summarize(one_week_rmse_flare_model = RMSE(exp(mean), exp(log_ebu_rate)))
-
-two_week_forecast_flare_RMSE <- trap_all_partition %>%
-  select(time, mean, log_ebu_rate, forecast_date)%>%
-  na.omit(.)%>%
-  group_by(forecast_date)%>%
-  filter(row_number(forecast_date) == 3) %>%
-  ungroup(.)%>%
-  summarize(one_week_rmse_flare_model = RMSE(exp(mean), exp(log_ebu_rate)))
 
 one_week_forecast_static_NSE <- trap_static_partition %>%
   select(time, mean, log_ebu_rate, forecast_date)%>%
@@ -341,6 +332,7 @@ daily_variance <- trap_all%>%
   labs(title = "A: Forecast uncertainty")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("Weeks into future")+
+  xlim(c(-1,4))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -353,14 +345,14 @@ daily_variance <- trap_all%>%
 
 
 season_variance <- trap_all %>%
-  rename(`Days into future` = days)%>%
-  ggplot(., aes(x = time, y = var, group = `Days into future`)) +
-  geom_line(aes(color = `Days into future`), size = 1)+
+  rename(`Weeks into future` = weeks)%>%
+  ggplot(., aes(x = time, y = var, group = `Weeks into future`)) +
+  geom_line(aes(color = `Weeks into future`), size = 1)+
   geom_line(aes(x = time, y = var, group = forecast_date), size = 0.5)+
   theme_bw()+
-  scale_color_viridis(option = "C", limits = c(0,4), 
-                      breaks = c(1,2,3),
-                      guide = guide_colourbar(barwidth = 20, barheight = 0.5, direction = "horizontal"))+
+  scale_color_viridis(option = "C", limits = c(0,2), 
+                      breaks = c(0,1,2),
+                      guide = guide_colourbar(barwidth = 5, barheight = 0.5, direction = "horizontal"))+
   labs(title = "B: Forecast uncertainty across 2019 forecast period")+
   ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
@@ -460,7 +452,9 @@ ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 6, d
 
 
 #  PARTITION UNCERTATINY
-  c <- ggplot(all_partitioned_melt, aes(x = days, y = value, group=interaction(forecast_date,variable), fill = interaction(forecast_date,variable)))+
+  c <- all_partitioned_melt%>%
+    filter(day_in_future>0)%>%
+    ggplot(., aes(x = days, y = value, group=interaction(forecast_date,variable), fill = interaction(forecast_date,variable)))+
            geom_area(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
     theme_bw()+
@@ -498,6 +492,7 @@ ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 6, d
 
 
   d <- all_partitioned_melt%>%
+    filter(day_in_future>0)%>%
     group_by(day_in_future,variable)%>%
     summarise_each(funs(if(is.numeric(.)) mean(., na.rm = TRUE) else first(.)))%>%
     ggplot(., aes(x = day_in_future, y = value, group=interaction(forecast_date,variable), fill = interaction(forecast_date,variable)))+
