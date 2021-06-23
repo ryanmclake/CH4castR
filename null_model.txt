@@ -1,0 +1,29 @@
+
+model {  
+   
+   #priors===================================================
+   
+   sd.pro ~ dlnorm(proc_mean, proc_prec)
+   
+   #Informative priors on initial conditions based on first observation
+   X[1] ~ dnorm(x_init, tau.obs[1])
+   
+   #end priors===============================================
+   
+   for(i in 2:N) {
+      
+      #process model=============================================
+      
+      tau.pro[i] <- 1/((sd.pro*ndays[i])*(sd.pro*ndays[i]))
+      predX[i] <- X[i-1]
+      X[i] ~ dnorm(predX[i],tau.pro[i])
+      
+      
+      #end of process model======================================
+      
+      #data model================================================
+      
+      Y[i] ~ dnorm(X[i], tau.obs[i]) # Observation variation
+            #end of data model=========================================
+   }
+  }

@@ -149,78 +149,77 @@ print(ebu_out_parms)
 
 
 ############### HAS NOT BEEN UPDATED ######################
+null = ("null_model.txt")
+jagsscript = cat("
+model {  
+   
+   #priors===================================================
+   
+   sd.pro ~ dunif(0, 1000)
+   
+   #Informative priors on initial conditions based on first observation
+   X[1] ~ dnorm(x_init, tau.obs[1])
+   
+   #end priors===============================================
+   
+   for(i in 2:N) {
+      
+      #process model=============================================
+      
+      tau.pro[i] <- 1/((sd.pro*ndays[i])*(sd.pro*ndays[i]))
+      predX[i] <- X[i-1]
+      X[i] ~ dnorm(predX[i],tau.pro[i])
+      
+      
+      #end of process model======================================
+      
+      #data model================================================
+      
+      Y[i] ~ dnorm(X[i], tau.obs[i]) # Observation variation
+            #end of data model=========================================
+   }
+  }", file = null)
 
 
-#* PERSISTENCE NULL MODEL ----
-# 
-RandomWalk = "
-model{
-  # Priors
-  x[1] ~ dnorm(x_ic,tau_init)
-  tau_add ~ dgamma(0.001,1e-6)
-  tau_init ~ dgamma(0.001,1e-6)
-  
-  # Process Model
-  for(t in 2:n){
-    x[t]~dnorm(x[t-1],tau_add)
-    x_obs[t] ~ dnorm(x[t],tau_obs[t])
-  }
-  # Data Model
-  for(i in 1:nobs){
-    y[i] ~ dnorm(x[y_wgaps_index[i]], tau_obs[y_wgaps_index[i]])
-  }
-}
-"
-# 
-# 
-# 
-# 
-# #* RUNJAGS FOR 2017 PERSISTENCE NULL----
-# # Select site
-site_data_var <- full_ebullition_model_alltrap_jags
 
-#observed ebullition: Full time series with gaps
-y_wgaps <- site_data_var$ebu_rate
-sd_wgaps <- imputeTS::na_interpolation(site_data_var$ebu_rate_se,option = "linear")
-time <- c(site_data_var$time)
-y_nogaps <- y_wgaps[!is.na(y_wgaps)]
-y_wgaps_index <- 1:length(y_wgaps)
-y_wgaps_index <- y_wgaps_index[!is.na(y_wgaps)]
-init_x <- approx(x = time[!is.na(y_wgaps)], y = y_nogaps, xout = time, rule = 2)$y
-data <- list(y = y_nogaps,
-             y_wgaps_index = y_wgaps_index,
-             nobs = length(y_wgaps_index),
-             tau_obs = 1/(sd_wgaps ^ 2),
-             n = length(y_wgaps),
-             x_ic = site_data_var$ebu_rate[1])
+#* RUNJAGS FOR 2017 EBULLITION MODEL ----
 
+
+jags.data.null = list(x_init = full_ebullition_model_alltrap_jags$ebu_rate[1],
+                    Y = full_ebullition_model_alltrap_jags$ebu_rate, 
+                    tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)/sqrt(4)) ^ 2,
+                    N = nrow(full_ebullition_model_alltrap_jags),
+                    ndays = full_ebullition_model_alltrap_jags$ndays)
 
 nchain = 3
 chain_seeds <- c(200,800,1400)
 init <- list()
 for(i in 1:nchain){
-  init[[i]] <- list(tau_add = 1/var(diff(y_nogaps)),
-                    tau_init = mean( 1/var(diff(y_nogaps)), na.rm = TRUE),
+  init[[i]] <- list(sd.pro = 0.5,
                     .RNG.name = "base::Wichmann-Hill",
-                    .RNG.seed = chain_seeds[i],
-                    x = init_x)
+                    .RNG.seed = chain_seeds[i])
 }
-j.model   <- jags.model (file = textConnection(RandomWalk),
-                         data = data,
-                         inits = init,
-                         n.chains = 3)
-jags.out   <- coda.samples(model = j.model,variable.names = c("tau_add","tau_init"), n.iter = 10000)
-plot(jags.out)
-print("PERSISTENCE NULL MODEL DIAGNOSTICS")
-print(gelman.diag(jags.out))
 
-# EXTRACT PARAMETER ESTIMATES ----
+j.model   <- jags.model(file = null,
+                        data = jags.data.null,
+                        inits = init,
+                        n.chains = 3)
+
+eval_ebu_null  <- coda.samples(model = j.model,
+                          variable.names = c("sd.pro"),
+                          n.iter = 70000, n.burnin = 10000)
 
 
+plot(eval_ebu_null)
+print("SS EBULLITION MODEL DIAGNOSTICS")
+print(gelman.diag(eval_ebu_null))
+
+#* PERSISTENCE NULL MODEL ----
 
 #* PERSISTENCE NULL MODEL PARAMETERS ----
-null_out_parms <- jags.out %>%
-  spread_draws(tau_add, tau_init) %>%
+null_out_parms <- eval_ebu_null %>%
+  spread_draws(sd.pro) %>%
   filter(.chain == 1)
 
 print(null_out_parms)
+
