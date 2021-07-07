@@ -59,18 +59,18 @@ ggsave(path = ".", filename = "SI_gelman.tiff", width = 6, height = 6, device='t
 
 
 ### Parameter estimates ###
-trap_all_parameters <- list.files(data_path, pattern = "model_parameter") %>%
+trap_all_parameters <- list.files(data_path, pattern = "ebullition_parameters") %>%
   map(~ readRDS(file.path(data_path, .))) %>% 
-  data.table::rbindlist() %>%
+  data.table::rbindlist(fill = T) %>%
   group_by(forecast_date)%>%
-  summarize(mean_process = mean(sd.pro),
-            sd_process = sd(sd.pro),
-            mean_intercept = mean(mu2),
-            sd_intercept = sd(mu2),
-            mean_observe = mean(phi),
-            sd_observe = sd(phi),
-            mean_temp = mean(omega),
-            sd_temp = sd(omega))
+  summarize(mean_process = mean(sd.pro, na.rm = T),
+            sd_process = sd(sd.pro, na.rm = T),
+            mean_intercept = mean(`pars[1]`, na.rm = T),
+            sd_intercept = sd(`pars[1]`, na.rm = T),
+            mean_observe = mean(`pars[2]`, na.rm = T),
+            sd_observe = sd(`pars[2]`, na.rm = T),
+            mean_temp = mean(`pars[3]`, na.rm = T),
+            sd_temp = sd(`pars[3]`, na.rm = T))
 
 
 ##### UNCERTAINTY PARTITIONING DATA ####
@@ -313,10 +313,10 @@ process <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_process))
   geom_ribbon(aes(ymin = mean_process-sd_process, ymax = mean_process+sd_process), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "C: Model process error")+
+  labs(title = "D: Process error parameter")+
   ylab(expression(paste(epsilon[t])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -327,14 +327,14 @@ process <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_process))
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-pressure <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_pressure)) +
-  geom_ribbon(aes(ymin = mean_pressure-sd_pressure, ymax = mean_pressure+sd_pressure), alpha = 0.2, fill = "midnightblue") +
+int <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_intercept)) +
+  geom_ribbon(aes(ymin = mean_intercept-sd_intercept, ymax = mean_intercept+sd_intercept), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "black")+
   theme_bw()+
-  labs(title = "C: Pressure Parameter")+
-  ylab(expression(paste(beta[0])))+
+  labs(title = "C: Intercept parameter")+
+  ylab(expression(paste(beta[1])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-26"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -350,9 +350,9 @@ AR <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_observe)) +
   geom_line(color = "black")+
   theme_bw()+
   labs(title = "A: Autoregressive parameter")+
-  ylab(expression(paste(beta[1])))+
+  ylab(expression(paste(beta[2])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-06-01"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -368,9 +368,9 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
   geom_line(color = "black")+
   theme_bw()+
   labs(title = "B: Temperature parameter")+
-  ylab(expression(paste(beta[2])))+
+  ylab(expression(paste(beta[3])))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-06-01"),as.Date("2019-11-08")))+
+  coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -381,9 +381,9 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-paramter = (AR+temp)
+paramter = (AR+temp)/(int+process)
 paramter
-ggsave(path = ".", filename = "FIGURE5_paramters.jpg", width = 10, height = 6, device='jpg', dpi=400)
+ggsave(path = ".", filename = "FIGURE_5_paramters.jpg", width = 10, height = 10, device='jpg', dpi=600)
 
 
 
