@@ -105,10 +105,10 @@ all_partitioned <- partition %>%
     mutate(sum_var = var_ic+var_pro+var_dri+var_par)%>%
     mutate(`Initial condition` = var_ic/sum_var)%>%
     mutate(`Driver data` = var_dri/sum_var)%>%
-    mutate(`Model paramter` = var_par/sum_var)%>%
+    mutate(`Model parameter` = var_par/sum_var)%>%
     mutate(`Model process` = var_pro/sum_var)%>%
-    mutate(sum_check = `Model process`+`Model paramter`+`Driver data`+`Initial condition`)%>%
-    select(time, forecast_date, `Initial condition`, `Driver data`, `Model paramter`, `Model process`, sum_check)%>%
+    mutate(sum_check = `Model process`+`Model parameter`+`Driver data`+`Initial condition`)%>%
+    select(time, forecast_date, `Initial condition`, `Driver data`, `Model parameter`, `Model process`, sum_check)%>%
   mutate(days = seq_along(sum_check))%>%
   group_by(forecast_date)%>%
   mutate(day_in_future = seq_along(forecast_date))%>%
@@ -120,7 +120,7 @@ all_partitioned_melt <- all_partitioned%>%
   melt(., id = c("time","forecast_date","days","day_in_future"))
 
 
-trap_all_partition <- left_join(trap_all, full_ebullition_model_alltrap_jags, by = c("time"))
+trap_all_partition <- left_join(trap_all, full_ebullition_model_alltrap, by = c("time"))
 
 trap_static_partition <- left_join(trap_all_static, full_ebullition_model_alltrap, by = c("time"))
 
@@ -197,12 +197,11 @@ ebullition_forecasts_wDA <- trap_all %>%
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "A: Forecasts with data assimilation")+
+  labs(title = "A: Forecasts recalibrated with new data")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  ylim(c(-50,150))+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
-                  ylim = c(-100,150))+
+                  ylim = c(-50,150))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -219,12 +218,11 @@ ebullition_forecasts_nDA <- trap_all_static %>%
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
-  labs(title = "A: Forecasts with data assimilation")+
+  labs(title = "B: Forecasts not recalibrated with new data")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  ylim(c(-50,150))+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
-                  ylim = c(-100,150))+
+                  ylim = c(-50,150))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -245,7 +243,7 @@ null_forecasts <- trap_all_per_null %>%
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
-                  ylim = c(-100,150))+
+                  ylim = c(-50,150))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -260,15 +258,16 @@ fig3 <- (ebullition_forecasts_wDA+ebullition_forecasts_nDA)/(null_forecasts+plot
 fig3
 ggsave(path = ".", filename = "FIGURE3_forecasts.jpg", width = 18, height = 12, device='jpg', dpi=400)
 
-daily_variance <- trap_all%>% group_by(forecast_date)%>% filter(weeks>0)%>%
-  ggplot(., aes(x = weeks, y = var, group = weeks)) +
+uncertatinty <- trap_all%>% group_by(forecast_date)%>% filter(weeks > 0)%>%
+  ggplot(., aes(x = weeks, y = sqrt(var), group = weeks)) +
   geom_boxplot()+
   geom_jitter(aes(color = forecast_date), width = 0.1, size = 2)+
   theme_bw()+
-  labs(title = "A: Forecast uncertainty")+
-  ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  labs(title = "A: Forecast Uncertainty Between One and Two-Week Forecast Horizon")+
+  ylab(expression(paste("Forecast Uncertainty (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("Weeks into future")+
-  xlim(c(0,3))+
+  scale_x_continuous(breaks = c(1,2))+
+  coord_cartesian(xlim=c(0.5, 2.5))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -280,17 +279,17 @@ daily_variance <- trap_all%>% group_by(forecast_date)%>% filter(weeks>0)%>%
         legend.text = element_text(size = 16, color = "black"))
 
 
-season_variance <- trap_all %>% group_by(forecast_date) %>% filter(weeks>0) %>%
-  rename(`Weeks into future` = weeks)%>%
-  ggplot(., aes(x = time, y = var, group = `Weeks into future`)) +
-  geom_line(aes(color = `Weeks into future`), size = 1)+
-  geom_line(aes(x = time, y = var, group = forecast_date), size = 0.5)+
+season_variance <- trap_all %>% group_by(forecast_date) %>%
+  rename(`Weeks into future` = weeks)%>%filter(`Weeks into future`>0)%>%
+  mutate(`Weeks into future` = as.character(`Weeks into future`))%>%
+  ggplot(., aes(x = time, y = sqrt(var), group = `Weeks into future`)) +
+  geom_line(aes(color = `Weeks into future`), size = 3)+
+  geom_line(aes(x = time, y = sqrt(var), group = forecast_date), size = 0.3, color = "grey50")+
   theme_bw()+
-  scale_color_viridis(option = "C", limits = c(0,2), 
-                      breaks = c(0,1,2),
-                      guide = guide_colourbar(barwidth = 5, barheight = 0.5, direction = "horizontal"))+
-  labs(title = "B: Forecast uncertainty across 2019 forecast period")+
-  ylab(expression(paste("Forecast variance (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  scale_color_viridis(option = "C", limits = factor(c(1,2)), 
+                      breaks = c(1,2), discrete = T)+
+  labs(title = "B: Forecast Uncertainty Across 2019 Forecast Period")+
+  ylab(expression(paste("Forecast Uncertainty (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
@@ -303,9 +302,9 @@ season_variance <- trap_all %>% group_by(forecast_date) %>% filter(weeks>0) %>%
         legend.text = element_text(size = 16, color = "black"))
 
 
-fig4 <- daily_variance/season_variance
+fig4 <- uncertatinty/season_variance
 fig4
-ggsave(path = ".", filename = "FIGURE4_variance.jpg", width = 12, height = 16, device='jpg', dpi=400)
+ggsave(path = ".", filename = "FIGURE4_variance.jpg", width = 10, height = 12, device='jpg', dpi=400)
 
 
 # PARAMETER ESTIAMTES FROM FORECASTS
@@ -350,7 +349,7 @@ AR <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_observe)) +
   geom_line(color = "black")+
   theme_bw()+
   labs(title = "A: Autoregressive parameter")+
-  ylab(expression(paste(beta[2])))+
+  ylab(expression(paste(beta[1])))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
@@ -368,7 +367,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
   geom_line(color = "black")+
   theme_bw()+
   labs(title = "B: Temperature parameter")+
-  ylab(expression(paste(beta[3])))+
+  ylab(expression(paste(beta[2])))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
@@ -381,15 +380,14 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-paramter = (AR+temp)/(int+process)
+paramter = (AR+temp)
 paramter
-ggsave(path = ".", filename = "FIGURE_5_paramters.jpg", width = 10, height = 10, device='jpg', dpi=600)
+ggsave(path = ".", filename = "FIGURE_5_paramters.jpg", width = 10, height = 5, device='jpg', dpi=600)
 
 
 
 #  PARTITION UNCERTATINY
   c <- all_partitioned_melt%>%
-    filter(day_in_future>0)%>%
     group_by(variable)%>%
     mutate(day_in_future = seq_along(forecast_date))%>%
     ggplot(., aes(x = day_in_future, y = value, group=interaction(forecast_date,variable), fill = interaction(forecast_date,variable)))+
@@ -411,11 +409,12 @@ ggsave(path = ".", filename = "FIGURE_5_paramters.jpg", width = 10, height = 10,
           title = element_text(size = 15), legend.position = "top",
           legend.text = element_text(size = 10, color = "black"))
   
-  e <- ggplot(all_partitioned_melt, aes(x = variable, y = value, group=variable, fill = variable))+
+  e <- all_partitioned_melt %>% filter(day_in_future > 0) %>%
+    ggplot(., aes(x = variable, y = value, group=variable, fill = variable))+
     geom_boxplot(aes(fill = variable))+
     scale_fill_manual(values = c("#E69F00", "#D55E00", "#CC79A7", "#56B4E9"))+
     theme_bw()+
-    labs(title = "B: Uncertatinty aggregated across forecast season")+
+    labs(title = "B: Uncertainty sources across 2019 forecast season")+
     ylab("Proportion to total variance")+
     xlab("Source of uncertainty")+
     theme(axis.text=element_text(size=15, color = "black"),
@@ -428,6 +427,7 @@ ggsave(path = ".", filename = "FIGURE_5_paramters.jpg", width = 10, height = 10,
           title = element_text(size = 15), legend.position = "none",
           legend.text = element_text(size = 10, color = "black"))
 
+  
   partition = c/e
   partition
   
