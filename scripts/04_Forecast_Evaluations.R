@@ -65,12 +65,12 @@ trap_all_parameters <- list.files(data_path, pattern = "ebullition_parameters") 
   group_by(forecast_date)%>%
   summarize(mean_process = mean(sd.pro, na.rm = T),
             sd_process = sd(sd.pro, na.rm = T),
-            mean_intercept = mean(`pars[1]`, na.rm = T),
-            sd_intercept = sd(`pars[1]`, na.rm = T),
-            mean_observe = mean(`pars[2]`, na.rm = T),
-            sd_observe = sd(`pars[2]`, na.rm = T),
-            mean_temp = mean(`pars[3]`, na.rm = T),
-            sd_temp = sd(`pars[3]`, na.rm = T))
+            mean_intercept = mean(mu2, na.rm = T),
+            sd_intercept = sd(mu2, na.rm = T),
+            mean_observe = mean(phi, na.rm = T),
+            sd_observe = sd(phi, na.rm = T),
+            mean_temp = mean(omega, na.rm = T),
+            sd_temp = sd(omega, na.rm = T))
 
 
 ##### UNCERTAINTY PARTITIONING DATA ####
