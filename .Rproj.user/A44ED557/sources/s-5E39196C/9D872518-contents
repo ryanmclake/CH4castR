@@ -10,7 +10,7 @@ se <- function(x, na.rm=FALSE) {
   sqrt(var(x)/length(x))
 }
 
-####  FIRST TIME USERS NEED TO DOWNLOAD JAGS TO THEIR LOCAL COMPUTER #####
+####  FIRST TIME USERS ***NEED*** TO DOWNLOAD JAGS TO THEIR LOCAL COMPUTER #####
 
 # Use command/control + click on the link to go directly to the download
 
