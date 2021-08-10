@@ -1,27 +1,26 @@
 # CH4castR user guide
 
-### Step 1 - DOWNLOAD CH4cast_v1 code via terminal in Rstudio
+<a href="url"><img src = "images/NSF.png" align="top" height="200" width="200" ></a>
+<a href="url"><img src = "images/FLARE.jpg" align="top" height="200" width="200" ></a>
+<a href="url"><img src = "images/CH4cast.png" align="top" height="200" width="200" ></a>
 
-1: Open a fresh R Studio window without any existing scripts
+-----
 
-2: Locate the terminal tab (next to console tab on bottom left) and select it
 
-3: In terminal, make a FOLDER anywhere on your local PC that is called --> CH4cast_v1
+:busts_in_silhouette: Ryan McClure, Quinn Thomas, Tadhg Moore, Cayelan Carey, Renato Figueiredo, Whitney Woelmer, Heather Wander, Vahid Daneshmand   
 
-      For example:
-      mkdir /Users/Owner/Desktop/CH4castR
-      
-4: In terminal, now make the new Folder your directory using the command "cd ".
+:busts_in_silhouette: Special thanks to: Carl Boettiger, Bobby Hensley, Eric Sokol, Kathleen Weathers
 
-      For example:
-      cd /Users/Owner/Desktop/CH4castR
-      
-5: In terminal, run the following command to download the CH4cast code from Github. 
+Questions?  :email: ryan333@vt.edu, rqthomas@vt.edu, cayelan@vt.edu, or tadhgm@vt.edu
 
-      For example:
-      git clone https://github.com/ryanmclake/CH4castR.git
-      
-6: After the cloning finishes, there should be a new folder in your working directory named "CH4cast_v1"
+-----
+
+## Motivation
+
+Thank you for checking out NEON-forecast-code. Freshwater lakes globally are increasingly threatened as a result of rapidly changing land use and climate ([Carpenter et al., 2011](https://www.annualreviews.org/doi/abs/10.1146/annurev-environ-021810-094524)). In response, developing forecast workflows has has emerged as a powerful tool to predict future environmental conditions in lakes in order to make informed management decisions for safety, health, and conservation ([Carey et al., 2021](); [Baracchini et al., 2020](https://www.sciencedirect.com/science/article/pii/S0043135420300658); [Page et al., 2018](https://www.sciencedirect.com/science/article/pii/S0043135418300605)). However, the discipline of forecasting in lakes is still in the early stages of making forecasts that are robust and reproducible. As a result, there is a dire need for open-source forecast workflows that are broadly applicable to many different lake ecosystems and flexible to different datastreams and local needs.
+
+Here, we applied the FLAREr forecasting system ([Thomas et al., 2020](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2019WR026138)) to six NEON lakes to test FLAREr's robustness and scalability to other sites. The NEON lakes serve as an exemplar case to test FLARE because they have reliable, open-source datastreams in which new data can be acquired at relatively low latencies (<1.5 months). The goal of our forecast scaling study was to show that FLAREr is scalable to other lake ecosystems and can produce robust forecasts of water temperatures up to 35-days into the future. Altogether, we hope this workflow is a first step to building a community of lake and reservoir forecast practitioners that develop reliable forecast workflows and make informed decisions for future lake conservation and management.
+
 
 ### Step 2 - Run forecasts of CH4 ebullition rates from summer 2019
 
