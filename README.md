@@ -522,3 +522,17 @@ print(null_out_parms)
 ```
 2. When script has finished running click on the <i>03_Generate_Forecasts.R</i> script. 
 
+## Run Forecasting Script
+
+1. If everything has been properly aligned, you should also be able to click source and the script will run through. 
+2. NOTE --> You might get an error at the end when sourcing. This is OK. It is still developing all the forecasts needed for the output.
+3. This script includes the bulk for CH<sub>4</sub>castR. Everything else so far has been just staging to prep for the foreacsts. The coding block is almost the same as the model training script above. 
+4. The forecasts are all saved in the forecast_output folder as .rds files. 
+
+## Run Forecast Evaluation Script
+
+1. If everything has been properly aligned, you should also be able to click source and the script will run through. 
+2. This will generate plots in the figures folder. This includes Figure 3, 4, 5, and 6 in the MS. Figures 1 and 2 have been manually added to the figures folder for transparency and access. 
+
+
+# Thanks again and Happy Forecasting!
