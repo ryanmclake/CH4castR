@@ -7,11 +7,11 @@
 -----
 
 
-:busts_in_silhouette: Ryan McClure, Quinn Thomas, Tadhg Moore, Cayelan Carey, Renato Figueiredo, Whitney Woelmer, Heather Wander, Vahid Daneshmand   
+:busts_in_silhouette: Ryan McClure, Quinn Thomas, Mary Lofton, Whitney Woelmer, and Cayelan Carey
 
-:busts_in_silhouette: Special thanks to: Carl Boettiger, Bobby Hensley, Eric Sokol, Kathleen Weathers
+:busts_in_silhouette: Special thanks to: 
 
-Questions?  :email: ryan333@vt.edu, rqthomas@vt.edu, cayelan@vt.edu, or tadhgm@vt.edu
+Questions?  :email: ryan333@vt.edu, rqthomas@vt.edu, cayelan@vt.edu
 
 -----
 
