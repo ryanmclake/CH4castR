@@ -304,7 +304,7 @@ season_variance <- trap_all %>% group_by(forecast_date) %>%
 
 fig4 <- uncertatinty/season_variance
 fig4
-ggsave(path = ".", filename = "./figures/FIGURE4_variance.jpg", width = 10, height = 12, device='jpg', dpi=400)
+ggsave(path = ".", filename = "./figures/FIGURE5_variance.jpg", width = 10, height = 12, device='jpg', dpi=400)
 
 
 # PARAMETER ESTIAMTES FROM FORECASTS
@@ -382,7 +382,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
 
 paramter = (AR+temp)
 paramter
-ggsave(path = ".", filename = "./figures/FIGURE5_paramters.jpg", width = 10, height = 5, device='jpg', dpi=600)
+ggsave(path = ".", filename = "./figures/FIGURE4_paramters.jpg", width = 10, height = 5, device='jpg', dpi=600)
 
 
 
