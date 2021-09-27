@@ -65,12 +65,12 @@ trap_all_parameters <- list.files(data_path, pattern = "ebullition_parameters") 
   group_by(forecast_date)%>%
   summarize(mean_process = mean(sd.pro, na.rm = T),
             sd_process = sd(sd.pro, na.rm = T),
-            mean_intercept = mean(mu2, na.rm = T),
-            sd_intercept = sd(mu2, na.rm = T),
-            mean_observe = mean(phi, na.rm = T),
-            sd_observe = sd(phi, na.rm = T),
-            mean_temp = mean(omega, na.rm = T),
-            sd_temp = sd(omega, na.rm = T))
+            mean_intercept = mean(`pars[1]`, na.rm = T),
+            sd_intercept = sd(`pars[1]`, na.rm = T),
+            mean_observe = mean(`pars[2]`, na.rm = T),
+            sd_observe = sd(`pars[2]`, na.rm = T),
+            mean_temp = mean(`pars[3]`, na.rm = T),
+            sd_temp = sd(`pars[3]`, na.rm = T))
 
 
 ##### UNCERTAINTY PARTITIONING DATA ####
@@ -195,7 +195,8 @@ ebullition_forecasts_wDA <- trap_all %>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.5) +
+  geom_point(data = ebu_raw, aes(x = time, y = ebu_rate), inherit.aes = FALSE, pch = 21, color = "black", fill = "darkred", cex = 1) +
   theme_bw()+
   labs(title = "A: Forecasts refitted with new data")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
@@ -216,7 +217,8 @@ ebullition_forecasts_nDA <- trap_all_static %>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.5) +
+  geom_point(data = ebu_raw, aes(x = time, y = ebu_rate), inherit.aes = FALSE, pch = 21, color = "black", fill = "darkred", cex = 1) +
   theme_bw()+
   labs(title = "B: Forecasts not refitted with new data")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
@@ -237,7 +239,8 @@ null_forecasts <- trap_all_per_null %>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1, alpha = 0.7)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.5) +
+  geom_point(data = ebu_raw, aes(x = time, y = ebu_rate), inherit.aes = FALSE, pch = 21, color = "black", fill = "darkred", cex = 1) +
   theme_bw()+
   labs(title = "C: Persistence null forecasts")+
   ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
@@ -326,23 +329,23 @@ ggsave(path = ".", filename = "./figures/FIGURE5_variance.jpg", width = 10, heig
 #         title = element_text(size = 15),legend.position = "none",
 #         legend.text = element_text(size = 16, color = "black"))
 # 
-# int <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_intercept)) +
-#   geom_ribbon(aes(ymin = mean_intercept-sd_intercept, ymax = mean_intercept+sd_intercept), alpha = 0.2, fill = "midnightblue") +
-#   geom_line(color = "black")+
-#   theme_bw()+
-#   labs(title = "C: Intercept parameter")+
-#   ylab(expression(paste(beta[1])))+
-#   xlab("")+
-#   coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
-#   theme(axis.text=element_text(size=15, color = "black"),
-#         axis.title=element_text(size=15, color = "black"),
-#         panel.grid.major.x = element_blank(),
-#         panel.grid.major.y = element_blank(),
-#         panel.grid.minor.x = element_blank(),
-#         panel.grid.minor.y = element_blank(),
-#         legend.title = element_blank(),
-#         title = element_text(size = 15),legend.position = "none",
-#         legend.text = element_text(size = 16, color = "black"))
+int <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_intercept)) +
+  geom_ribbon(aes(ymin = mean_intercept-sd_intercept, ymax = mean_intercept+sd_intercept), alpha = 0.2, fill = "midnightblue") +
+  geom_line(color = "black")+
+  theme_bw()+
+  labs(title = "C: Intercept parameter")+
+  ylab(expression(paste(beta[0])))+
+  xlab("")+
+  coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
+  theme(axis.text=element_text(size=15, color = "black"),
+        axis.title=element_text(size=15, color = "black"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        legend.title = element_blank(),
+        title = element_text(size = 15),legend.position = "none",
+        legend.text = element_text(size = 16, color = "black"))
 
 AR <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_observe)) +
   geom_ribbon(aes(ymin = mean_observe-sd_observe, ymax = mean_observe+sd_observe), alpha = 0.2, fill = "midnightblue") +
@@ -380,9 +383,9 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
         title = element_text(size = 15),legend.position = "none",
         legend.text = element_text(size = 16, color = "black"))
 
-paramter = (AR+temp)
+paramter = (AR+temp)/(int+plot_spacer())
 paramter
-ggsave(path = ".", filename = "./figures/FIGURE4_paramters.jpg", width = 10, height = 5, device='jpg', dpi=600)
+ggsave(path = ".", filename = "./figures/FIGURE4_paramters.jpg", width = 8, height = 5, device='jpg', dpi=600)
 
 
 
