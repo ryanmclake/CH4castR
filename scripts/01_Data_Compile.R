@@ -204,11 +204,12 @@ ebu <- read_csv("./observed/EDI_DATA_EBU_DIFF_DEPTH_2015_2019.csv") %>%
   rename(time = DateTime) %>%
   filter(Transect == "T1")%>%
   select(time, Site, Ebu_rate)%>%
-  mutate(ebu_rate = ifelse(is.infinite(Ebu_rate),NA,Ebu_rate))%>%
+  mutate(ebu_rate = log(0.1 + Ebu_rate)) %>% 
   group_by(time) %>%
   summarize(ebu_rate_se = se(ebu_rate, na.rm = T),
-            ebu_rate = mean(ebu_rate, na.rm = T))%>%
+            ebu_rate = mean(ebu_rate, na.rm = T)) %>%
   select(time, ebu_rate, ebu_rate_se)
+
 
 ebu$ebu_rate[is.nan(as.numeric(ebu$ebu_rate))] <- NA
 
@@ -250,4 +251,5 @@ full_ebullition_model_alltrap$ebu_rate[is.nan(as.numeric(full_ebullition_model_a
 full_ebullition_model_alltrap$ebu_rate_se[is.nan(as.numeric(full_ebullition_model_alltrap$ebu_rate_se))] <- NA
 full_ebullition_model_alltrap$hobo_temp[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp))] <- NA
 full_ebullition_model_alltrap$hobo_temp_se[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp_se))] <- NA
+
 

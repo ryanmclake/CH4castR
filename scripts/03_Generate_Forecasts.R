@@ -217,7 +217,7 @@ for(s in 1:length(dates)){
 
   jags.data.ar = list(x_init = full_ebullition_model_alltrap_jags$ebu_rate[1],
                       Y = full_ebullition_model_alltrap_jags$ebu_rate, 
-                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)/sqrt(4)) ^ 2,
+                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)) ^ 2,
                       N = nrow(full_ebullition_model_alltrap_jags), 
                       D = full_ebullition_model_alltrap_jags$hobo_temp,
                       ndays = full_ebullition_model_alltrap_jags$ndays,
@@ -241,7 +241,7 @@ for(s in 1:length(dates)){
   
   jags.out  <- coda.samples(model = j.model,
                             variable.names = c("sd.pro", "pars[1]", "pars[2]", "pars[3]"),
-                            n.iter = 70000, n.burnin = 20000)
+                            n.iter = 200000, n.burnin = 20000, thin = 200)
   
   gelman_ebu <- gelman.diag(jags.out)
   gelman_ebu <- as.data.frame(bind_cols(gelman_ebu$mpsrf,as.Date(dates[s])))
@@ -525,7 +525,7 @@ for(s in 1:length(dates)){
   
   jags.data.null = list(x_init = full_ebullition_model_alltrap_jags$ebu_rate[1],
                       Y = full_ebullition_model_alltrap_jags$ebu_rate, 
-                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)/sqrt(4)) ^ 2,
+                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)) ^ 2,
                       N = nrow(full_ebullition_model_alltrap_jags),
                       ndays = full_ebullition_model_alltrap_jags$ndays,
                       proc_prec = 1 / log(1 + (var(null_out_parms$sd.pro)/(mean(null_out_parms$sd.pro)^2))),
@@ -546,7 +546,7 @@ for(s in 1:length(dates)){
   
   eval_ebu_null  <- coda.samples(model = j.model,
                                  variable.names = c("sd.pro"),
-                                 n.iter = 70000, n.burnin = 10000)
+                                 n.iter = 200000, n.burnin = 20000, thin = 200)
   
   # Extract the parameter esimates from the ebullition model run for dates[s] and traps[h]
   ########################################################################################

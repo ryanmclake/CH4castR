@@ -191,6 +191,9 @@ two_week_forecast_null_eval <- trap_null_partition %>%
 ### FIGURES ###
 ### visualizations of the full ebullition forecasts (figure 3)
 
+upper_y = 10
+lower_y = -3
+
 ebullition_forecasts_wDA <- trap_all %>%
   ggplot(., aes(x = time, y = mean, group = forecast_date)) +
   geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
@@ -198,10 +201,10 @@ ebullition_forecasts_wDA <- trap_all %>%
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
   labs(title = "A: Forecasts refitted with new data")+
-  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  ylab(expression(paste("log Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
-                  ylim = c(-50,150))+
+                  ylim = c(lower_y,upper_y))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -219,10 +222,10 @@ ebullition_forecasts_nDA <- trap_all_static %>%
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
   labs(title = "B: Forecasts not refitted with new data")+
-  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  ylab(expression(paste("log Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
-                  ylim = c(-50,150))+
+                  ylim = c(lower_y,upper_y))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -240,10 +243,10 @@ null_forecasts <- trap_all_per_null %>%
   geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate, ymin = ebu_rate-ebu_rate_se, ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "red", fill = "red", cex = 0.5) +
   theme_bw()+
   labs(title = "C: Persistence null forecasts")+
-  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  ylab(expression(paste("log Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
-                  ylim = c(-50,150))+
+                  ylim = c(lower_y,upper_y))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),

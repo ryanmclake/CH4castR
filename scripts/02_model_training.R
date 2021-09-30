@@ -20,23 +20,23 @@ model {
    }
 }  
 ", 
-                 file = model.lm17)
+file = model.lm17)
 
 
 #* RUNJAGS FOR 2017 TEMP SCALE ----
 
 
 full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap%>%
-  select(time, ebu_rate, ebu_rate_se, hobo_temp, water_temp_dam)%>%
-  filter(time <= "2017-10-30")
+   select(time, ebu_rate, ebu_rate_se, hobo_temp, water_temp_dam)%>%
+   filter(time <= "2017-10-30")
 
 for (i in colnames(full_ebullition_model_alltrap_jags[,c(3:5)])) {
-  full_ebullition_model_alltrap_jags[,i] <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags[,i],option = "linear")   
+   full_ebullition_model_alltrap_jags[,i] <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags[,i],option = "linear")   
 }
-  
+
 
 full_ebullition_model_alltrap_jags <- na.omit(full_ebullition_model_alltrap_jags)%>%
-  mutate(ndays = difftime(time,lag(time)))
+   mutate(ndays = difftime(time,lag(time)))
 
 jags.data.lm = list(Y= full_ebullition_model_alltrap_jags$hobo_temp,
                     N = nrow(full_ebullition_model_alltrap_jags),
@@ -59,8 +59,8 @@ print(gelman.diag(eval_temp))
 #* TEMPERATURE SCALING PARAMETERS ----
 
 temp_out_parms <- eval_temp %>%
-  spread_draws(sd.pro, mu, beta) %>%
-  filter(.chain == 1)
+   spread_draws(sd.pro, mu, beta) %>%
+   filter(.chain == 1)
 
 print(temp_out_parms)
 
@@ -108,7 +108,7 @@ model {
 
 jags.data.ar = list(x_init = full_ebullition_model_alltrap_jags$ebu_rate[1],
                     Y = full_ebullition_model_alltrap_jags$ebu_rate, 
-                    tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)/sqrt(4)) ^ 2,
+                    tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)) ^ 2,
                     N = nrow(full_ebullition_model_alltrap_jags), 
                     D = full_ebullition_model_alltrap_jags$hobo_temp,
                     ndays = full_ebullition_model_alltrap_jags$ndays)
@@ -117,12 +117,12 @@ nchain = 3
 chain_seeds <- c(200,800,1400)
 init <- list()
 for(i in 1:nchain){
-  init[[i]] <- list(sd.pro = 0.5,
-                    mu2 = -5,
-                    omega = 0.5, 
-                    phi = 0.2,
-                    .RNG.name = "base::Wichmann-Hill",
-                    .RNG.seed = chain_seeds[i])
+   init[[i]] <- list(sd.pro = 0.5,
+                     mu2 = -5,
+                     omega = 0.5, 
+                     phi = 0.2,
+                     .RNG.name = "base::Wichmann-Hill",
+                     .RNG.seed = chain_seeds[i])
 }
 
 j.model   <- jags.model(file = model.ar17,
@@ -132,18 +132,19 @@ j.model   <- jags.model(file = model.ar17,
 
 eval_ebu  <- coda.samples(model = j.model,
                           variable.names = c("sd.pro", "mu2", "phi", "omega"),
-                          n.iter = 70000, n.burnin = 10000)
+                          n.iter = 200000, n.burnin = 20000, thin = 200)
 
 #plot(eval_ebu)
 print("SS EBULLITION MODEL DIAGNOSTICS")
 print(gelman.diag(eval_ebu))
+plot(eval_ebu)
 
 
 #* EBULLITION MODEL PARAMETERS ----
 
 ebu_out_parms <- eval_ebu %>%
-  spread_draws(sd.pro, mu2, phi, omega) %>%
-  filter(.chain == 1)
+   spread_draws(sd.pro, mu2, phi, omega) %>%
+   filter(.chain == 1)
 
 print(ebu_out_parms)
 
@@ -186,18 +187,18 @@ model {
 
 
 jags.data.null = list(x_init = full_ebullition_model_alltrap_jags$ebu_rate[1],
-                    Y = full_ebullition_model_alltrap_jags$ebu_rate, 
-                    tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)/sqrt(4)) ^ 2,
-                    N = nrow(full_ebullition_model_alltrap_jags),
-                    ndays = full_ebullition_model_alltrap_jags$ndays)
+                      Y = full_ebullition_model_alltrap_jags$ebu_rate, 
+                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)) ^ 2,
+                      N = nrow(full_ebullition_model_alltrap_jags),
+                      ndays = full_ebullition_model_alltrap_jags$ndays)
 
 nchain = 3
 chain_seeds <- c(200,800,1400)
 init <- list()
 for(i in 1:nchain){
-  init[[i]] <- list(sd.pro = 0.5,
-                    .RNG.name = "base::Wichmann-Hill",
-                    .RNG.seed = chain_seeds[i])
+   init[[i]] <- list(sd.pro = 0.5,
+                     .RNG.name = "base::Wichmann-Hill",
+                     .RNG.seed = chain_seeds[i])
 }
 
 j.model   <- jags.model(file = null,
@@ -206,8 +207,8 @@ j.model   <- jags.model(file = null,
                         n.chains = 3)
 
 eval_ebu_null  <- coda.samples(model = j.model,
-                          variable.names = c("sd.pro"),
-                          n.iter = 70000, n.burnin = 10000)
+                               variable.names = c("sd.pro"),
+                               n.iter = 200000, n.burnin = 20000, thin = 200)
 
 
 plot(eval_ebu_null)
@@ -218,8 +219,8 @@ print(gelman.diag(eval_ebu_null))
 
 #* PERSISTENCE NULL MODEL PARAMETERS ----
 null_out_parms <- eval_ebu_null %>%
-  spread_draws(sd.pro) %>%
-  filter(.chain == 1)
+   spread_draws(sd.pro) %>%
+   filter(.chain == 1)
 
 print(null_out_parms)
 
