@@ -164,7 +164,9 @@ for(s in 1:length(dates)){
   chain_seeds <- c(200,800,1400)
   init <- list()
   for(i in 1:nchain){
-    init[[i]] <- list(.RNG.name = "base::Wichmann-Hill",
+    init[[i]] <- list(sd.pro = runif(1, 0.5,1),
+                       pars = c(runif(1,1,4),runif(1, 0.6, 0.8)),
+                       .RNG.name = "base::Wichmann-Hill",
                       .RNG.seed = chain_seeds[i])
   }
   
@@ -230,7 +232,11 @@ for(s in 1:length(dates)){
   chain_seeds <- c(200,800,1400)
   init <- list()
   for(i in 1:nchain){
-    init[[i]] <- list(.RNG.name = "base::Wichmann-Hill",
+    init[[i]] <- list(sd.pro = runif(1, 0.01, 2),
+                      mu2 = runif(1, -20,0),
+                      omega = runif(1, 0.3,1), 
+                      phi = runif(1, -0.2, 0.3),
+                      .RNG.name = "base::Wichmann-Hill",
                       .RNG.seed = chain_seeds[i])
   }
   
@@ -535,7 +541,8 @@ for(s in 1:length(dates)){
   chain_seeds <- c(200,800,1400)
   init <- list()
   for(i in 1:nchain){
-    init[[i]] <- list(.RNG.name = "base::Wichmann-Hill",
+    init[[i]] <- list(sd.pro = runif(1, 0.01,0.2),
+                      .RNG.name = "base::Wichmann-Hill",
                       .RNG.seed = chain_seeds[i])
   }
   

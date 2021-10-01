@@ -38,11 +38,23 @@ for (i in colnames(full_ebullition_model_alltrap_jags[,c(3:5)])) {
 full_ebullition_model_alltrap_jags <- na.omit(full_ebullition_model_alltrap_jags)%>%
    mutate(ndays = difftime(time,lag(time)))
 
+
+nchain = 3
+chain_seeds <- c(200,800,1400)
+init <- list()
+for(i in 1:nchain){
+   init[[i]] <- list(sd.pro = runif(1, 0.5,1),
+                     mu = runif(1,1,4),
+                     beta = runif(1, 0.6, 0.8), 
+                     .RNG.name = "base::Wichmann-Hill",
+                     .RNG.seed = chain_seeds[i])
+}
+
 jags.data.lm = list(Y= full_ebullition_model_alltrap_jags$hobo_temp,
                     N = nrow(full_ebullition_model_alltrap_jags),
                     C_mean = full_ebullition_model_alltrap_jags$water_temp_dam)
 
-jags.params.lm.eval = c("sd.pro", "mu", "beta", "tau.pro")
+jags.params.lm.eval = c("sd.pro", "mu", "beta")
 
 j.lm.model   <- jags.model(file = model.lm17,
                            data = jags.data.lm,
@@ -50,7 +62,7 @@ j.lm.model   <- jags.model(file = model.lm17,
 
 eval_temp  <- coda.samples(model = j.lm.model,
                            variable.names = jags.params.lm.eval,
-                           n.iter = 10000, n.burnin = 1000)
+                           n.iter = 200000, n.burnin = 20000, thin = 200)
 #plot(eval_temp)
 print("TEMP SCALE MODEL DIAGNOSTICS")
 print(gelman.diag(eval_temp))
@@ -117,10 +129,10 @@ nchain = 3
 chain_seeds <- c(200,800,1400)
 init <- list()
 for(i in 1:nchain){
-   init[[i]] <- list(sd.pro = 0.5,
-                     mu2 = -5,
-                     omega = 0.5, 
-                     phi = 0.2,
+   init[[i]] <- list(sd.pro = runif(1, 0.01, 2),
+                     mu2 = runif(1, -20,0),
+                     omega = runif(1, 0.3,1), 
+                     phi = runif(1, -0.2, 0.3),
                      .RNG.name = "base::Wichmann-Hill",
                      .RNG.seed = chain_seeds[i])
 }
@@ -196,7 +208,7 @@ nchain = 3
 chain_seeds <- c(200,800,1400)
 init <- list()
 for(i in 1:nchain){
-   init[[i]] <- list(sd.pro = 0.5,
+   init[[i]] <- list(sd.pro = runif(1, 0.01,0.2),
                      .RNG.name = "base::Wichmann-Hill",
                      .RNG.seed = chain_seeds[i])
 }

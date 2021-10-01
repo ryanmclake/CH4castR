@@ -28,6 +28,7 @@ pacman::p_load(tidyverse, MCMCvis, lubridate, tidybayes,
                ncdf4, reshape2, zoo, patchwork, hydroGOF, viridis,
                imputeTS, devtools, scales, forecast, coda, rjags, R2jags)
 
+set.seed(1)
 ### Pull together all of the observations ###
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
