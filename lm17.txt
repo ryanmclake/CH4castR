@@ -1,0 +1,12 @@
+
+model {  
+   mu ~ dnorm(0,1e-6)  # intercet
+   beta ~ dnorm(0,1e-6) # cat temp paramter
+   sd.pro ~ dunif(0, 1000)
+   tau.pro <-  pow(sd.pro, -2)
+   
+   for(i in 2:N) {
+      predX[i] <- mu + C_mean[i]*beta 
+      Y[i] ~ dnorm(predX[i],tau.pro) # model error
+   }
+}  

@@ -26,8 +26,9 @@ se <- function(x, na.rm=FALSE) {
 if (!"pacman" %in% installed.packages()) install.packages("pacman")
 pacman::p_load(tidyverse, MCMCvis, lubridate, tidybayes,
                ncdf4, reshape2, zoo, patchwork, hydroGOF, viridis,
-               imputeTS, devtools, scales, forecast, coda, rjags, R2jags)
+               imputeTS, devtools, scales, forecast, coda, rjags, R2jags,gridExtra)
 
+set.seed(1)
 ### Pull together all of the observations ###
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -172,13 +173,13 @@ ctd_sum <- ctd %>% select(Reservoir, Date, Site, Depth_m, Temp_C)%>%
   summarise(mean = mean(temp),
             mean_se = se(temp))%>%
   filter(time != "2017-05-27" &    ### Extract CTD casts from days that FCR with Mixed using an epilimnetic Mixer.
-         time != "2017-07-07" &    ### Refer to Lofton et al., 2018 and Chen et al., 2018 for details on the mixer
-         time != "2017-07-08" & 
-         time != "2017-07-09" &
-         time != "2017-07-10" &
-         time != "2017-07-11" &
-         time != "2017-07-12" &
-         time != "2017-10-08")
+           time != "2017-07-07" &    ### Refer to Lofton et al., 2018 and Chen et al., 2018 for details on the mixer
+           time != "2017-07-08" & 
+           time != "2017-07-09" &
+           time != "2017-07-10" &
+           time != "2017-07-11" &
+           time != "2017-07-12" &
+           time != "2017-10-08")
 
 # make an observed damn site water temp column.
 water_temp <- rbind(ctd_sum, cat_sum)%>%
@@ -204,17 +205,23 @@ ebu <- read_csv("./observed/EDI_DATA_EBU_DIFF_DEPTH_2015_2019.csv") %>%
   rename(time = DateTime) %>%
   filter(Transect == "T1")%>%
   select(time, Site, Ebu_rate)%>%
-  mutate(ebu_rate = ifelse(is.infinite(Ebu_rate),NA,Ebu_rate))%>%
+  mutate(ebu_rate = log(0.1 + Ebu_rate)) %>% 
   group_by(time) %>%
   summarize(ebu_rate_se = se(ebu_rate, na.rm = T),
-            ebu_rate = mean(ebu_rate, na.rm = T))%>%
+            ebu_rate = mean(ebu_rate, na.rm = T)) %>%
   select(time, ebu_rate, ebu_rate_se)
+
 
 ebu$ebu_rate[is.nan(as.numeric(ebu$ebu_rate))] <- NA
 
 time <- as.data.frame(seq(from = as.Date("2017-05-07"), to = as.Date("2019-11-07"), by = "day"))%>%
   rename(time = `seq(from = as.Date(\"2017-05-07\"), to = as.Date(\"2019-11-07\"), by = \"day\")`)
 
+ebu_raw <- read_csv("./observed/EDI_DATA_EBU_DIFF_DEPTH_2015_2019.csv") %>%
+  rename(time = DateTime) %>%
+  filter(Transect == "T1")%>%
+  select(time, Ebu_rate)%>%
+  mutate(ebu_rate = log(0.1 + Ebu_rate))
 
 # Join with all previous data and make the object that will feed directly into the Jags model
 full_ebullition_model <- left_join(time, hobo, by = "time") %>%
@@ -222,7 +229,7 @@ full_ebullition_model <- left_join(time, hobo, by = "time") %>%
   left_join(., ebu, by = "time")%>%
   mutate(year = year(time))%>%
   filter(year != "2018")
-  
+
 full_ebullition_model_17 <- full_ebullition_model%>%
   filter(time >= "2017-05-07") %>%
   filter(time <= "2017-10-30") %>%
@@ -250,4 +257,5 @@ full_ebullition_model_alltrap$ebu_rate[is.nan(as.numeric(full_ebullition_model_a
 full_ebullition_model_alltrap$ebu_rate_se[is.nan(as.numeric(full_ebullition_model_alltrap$ebu_rate_se))] <- NA
 full_ebullition_model_alltrap$hobo_temp[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp))] <- NA
 full_ebullition_model_alltrap$hobo_temp_se[is.nan(as.numeric(full_ebullition_model_alltrap$hobo_temp_se))] <- NA
+
 

@@ -164,7 +164,9 @@ for(s in 1:length(dates)){
   chain_seeds <- c(200,800,1400)
   init <- list()
   for(i in 1:nchain){
-    init[[i]] <- list(.RNG.name = "base::Wichmann-Hill",
+    init[[i]] <- list(sd.pro = runif(1, 0.5,1),
+                      pars = c(runif(1,1,4),runif(1, 0.6, 0.8)),
+                      .RNG.name = "base::Wichmann-Hill",
                       .RNG.seed = chain_seeds[i])
   }
   
@@ -178,7 +180,7 @@ for(s in 1:length(dates)){
                              variable.names = jags.params.lm.eval,
                              n.iter = 10000, n.burnin = 1000)
   
-
+  
   #plot(eval_temp)
   
   # Extract the parameter esimates from the ebullition model run for dates[s] and traps[h]
@@ -204,20 +206,20 @@ for(s in 1:length(dates)){
   
   # initial condition uncertainty
   forecast_1wk <- temp_forecast_function(temp_forecast = temp_forecast[1,],
-                                     mu = parms$`pars[1]`,
-                                     beta = parms$`pars[2]`,
-                                     Q = parms$sd.pro,
-                                     ndays = as.numeric(ndays))
+                                         mu = parms$`pars[1]`,
+                                         beta = parms$`pars[2]`,
+                                         Q = parms$sd.pro,
+                                         ndays = as.numeric(ndays))
   
   forecast_2wk <- temp_forecast_function(temp_forecast = temp_forecast[2,],
                                          mu = parms$`pars[1]`,
                                          beta = parms$`pars[2]`,
                                          Q = parms$sd.pro,
                                          ndays = as.numeric(ndays))
-
+  
   jags.data.ar = list(x_init = full_ebullition_model_alltrap_jags$ebu_rate[1],
                       Y = full_ebullition_model_alltrap_jags$ebu_rate, 
-                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)/sqrt(4)) ^ 2,
+                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)) ^ 2,
                       N = nrow(full_ebullition_model_alltrap_jags), 
                       D = full_ebullition_model_alltrap_jags$hobo_temp,
                       ndays = full_ebullition_model_alltrap_jags$ndays,
@@ -230,7 +232,11 @@ for(s in 1:length(dates)){
   chain_seeds <- c(200,800,1400)
   init <- list()
   for(i in 1:nchain){
-    init[[i]] <- list(.RNG.name = "base::Wichmann-Hill",
+    init[[i]] <- list(sd.pro = runif(1, 0.01, 2),
+                      mu2 = runif(1, -20,0),
+                      omega = runif(1, 0.3,1), 
+                      phi = runif(1, -0.2, 0.3),
+                      .RNG.name = "base::Wichmann-Hill",
                       .RNG.seed = chain_seeds[i])
   }
   
@@ -241,7 +247,7 @@ for(s in 1:length(dates)){
   
   jags.out  <- coda.samples(model = j.model,
                             variable.names = c("sd.pro", "pars[1]", "pars[2]", "pars[3]"),
-                            n.iter = 70000, n.burnin = 20000)
+                            n.iter = 200000, n.burnin = 20000, thin = 200)
   
   gelman_ebu <- gelman.diag(jags.out)
   gelman_ebu <- as.data.frame(bind_cols(gelman_ebu$mpsrf,as.Date(dates[s])))
@@ -258,14 +264,14 @@ for(s in 1:length(dates)){
     mutate(forecast_date = start_forecast)%>%
     ungroup()%>%
     select(forecast_date, sd.pro, `pars[1]`, `pars[2]`, `pars[3]`)
-  saveRDS(ebu_out_parms, paste0("./forecast_output/ebullition_parameters_",dates[s],".rds"))
+  saveRDS(ebu_forecast_parms, paste0("./forecast_output/ebullition_parameters_",dates[s],".rds"))
   #######################################################################################
   
   
   #UNCERTAINTY PARTITIONING OF DATA
   ########################################################################################
   
-        ## set number of Monte Carlo draws
+  ## set number of Monte Carlo draws
   time <- c(dates[s+1], dates[s+2])
   
   
@@ -279,27 +285,27 @@ for(s in 1:length(dates)){
   
   IC <- full_ebullition_model_alltrap_jags %>% filter(time == dates[s]) %>%
     select(ebu_rate, ebu_rate_se)
-
+  
   
   observed_date <- full_ebullition_model_alltrap_jags %>% filter(time == dates[s]) %>%
     select(time)
   
   # initial condition uncertainty
   ebu_forecast_1wk <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
-                                FLARE = forecast_1wk,
-                                mu2 = parms$`pars[1]`,
-                                phi = parms$`pars[2]`,
-                                omega = parms$`pars[3]`,
-                                Q = parms$sd.pro,
-                                ndays = as.numeric(ndays))
+                                        FLARE = forecast_1wk,
+                                        mu2 = parms$`pars[1]`,
+                                        phi = parms$`pars[2]`,
+                                        omega = parms$`pars[3]`,
+                                        Q = parms$sd.pro,
+                                        ndays = as.numeric(ndays))
   
   ebu_forecast_2wk <- forecast_function(IC = ebu_forecast_1wk,  ## sample IC
-                                    FLARE = forecast_2wk,
-                                    mu2 = parms$`pars[1]`,
-                                    phi = parms$`pars[2]`,
-                                    omega = parms$`pars[3]`,
-                                    Q = parms$sd.pro,
-                                    ndays = as.numeric(ndays))
+                                        FLARE = forecast_2wk,
+                                        mu2 = parms$`pars[1]`,
+                                        phi = parms$`pars[2]`,
+                                        omega = parms$`pars[3]`,
+                                        Q = parms$sd.pro,
+                                        ndays = as.numeric(ndays))
   
   ebu_forecast <- rbind(ebu_forecast_1wk, ebu_forecast_2wk)%>% unname(.)%>%
     cbind(time,.)
@@ -362,8 +368,8 @@ for(s in 1:length(dates)){
     mutate(forecast_date = start_forecast)
   
   saveRDS(parm_final_forecast_sumarized, paste0("./forecast_output/model_parameter",dates[s],".rds"))
-
-
+  
+  
   # driver data uncertainty
   driv_ebu_forecast_1wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
                                              FLARE = forecast_1wk,
@@ -401,7 +407,7 @@ for(s in 1:length(dates)){
               var = var(value))%>%
     mutate(forecast_date = start_forecast)
   saveRDS(driv_final_forecast_sumarized, paste0("./forecast_output/model_driver_",dates[s],".rds"))
-
+  
   # process uncertainty
   proc_ebu_forecast_1wk <- forecast_function(IC = mean(rnorm(210,IC[,1], IC[,2])), ## sample IC
                                              FLARE = as.numeric(rowMeans(forecast_1wk)),
@@ -439,7 +445,7 @@ for(s in 1:length(dates)){
               var = var(value))%>%
     mutate(forecast_date = start_forecast)
   saveRDS(proc_ebu_forecast_sumarized, paste0("./forecast_output/model_process_",dates[s],".rds"))
-
+  
   
   # initial conditions
   inic_ebu_forecast_1wk <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
@@ -478,7 +484,7 @@ for(s in 1:length(dates)){
               var = var(value))%>%
     mutate(forecast_date = start_forecast)
   saveRDS(inic_ebu_forecast_sumarized, paste0("./forecast_output/model_initial_",dates[s],".rds"))
-
+  
   
   ### Generate the forecasts without data assimilation
   
@@ -486,20 +492,20 @@ for(s in 1:length(dates)){
   
   
   ebu_forecast_1wk_nDA <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
-                                        FLARE = forecast_1wk,
-                                        mu2 = parm_17$mu2,
-                                        phi = parm_17$phi,
-                                        omega = parm_17$omega,
-                                        Q = parm_17$sd.pro,
-                                        ndays = as.numeric(ndays))
+                                            FLARE = forecast_1wk,
+                                            mu2 = parm_17$mu2,
+                                            phi = parm_17$phi,
+                                            omega = parm_17$omega,
+                                            Q = parm_17$sd.pro,
+                                            ndays = as.numeric(ndays))
   
-  ebu_forecast_2wk_nDA <- forecast_function(IC = ebu_forecast_1wk,  ## sample IC
-                                        FLARE = forecast_2wk,
-                                        mu2 = parms$`pars[1]`,
-                                        phi = parms$`pars[2]`,
-                                        omega = parms$`pars[3]`,
-                                        Q = parms$sd.pro,
-                                        ndays = as.numeric(ndays))
+  ebu_forecast_2wk_nDA <- forecast_function(IC = ebu_forecast_1wk_nDA,  ## sample IC
+                                            FLARE = forecast_2wk,
+                                            mu2 = parms$`pars[1]`,
+                                            phi = parms$`pars[2]`,
+                                            omega = parms$`pars[3]`,
+                                            Q = parms$sd.pro,
+                                            ndays = as.numeric(ndays))
   
   ebu_forecast_nDA <- rbind(ebu_forecast_1wk_nDA, ebu_forecast_2wk_nDA)%>% unname(.)%>%
     cbind(time,.)
@@ -524,18 +530,19 @@ for(s in 1:length(dates)){
   
   
   jags.data.null = list(x_init = full_ebullition_model_alltrap_jags$ebu_rate[1],
-                      Y = full_ebullition_model_alltrap_jags$ebu_rate, 
-                      tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)/sqrt(4)) ^ 2,
-                      N = nrow(full_ebullition_model_alltrap_jags),
-                      ndays = full_ebullition_model_alltrap_jags$ndays,
-                      proc_prec = 1 / log(1 + (var(null_out_parms$sd.pro)/(mean(null_out_parms$sd.pro)^2))),
-                      proc_mean = log((mean(null_out_parms$sd.pro)^2)/sqrt(mean(null_out_parms$sd.pro)^2 + var(null_out_parms$sd.pro))))
+                        Y = full_ebullition_model_alltrap_jags$ebu_rate, 
+                        tau.obs = 1/((full_ebullition_model_alltrap_jags$ebu_rate_se)) ^ 2,
+                        N = nrow(full_ebullition_model_alltrap_jags),
+                        ndays = full_ebullition_model_alltrap_jags$ndays,
+                        proc_prec = 1 / log(1 + (var(null_out_parms$sd.pro)/(mean(null_out_parms$sd.pro)^2))),
+                        proc_mean = log((mean(null_out_parms$sd.pro)^2)/sqrt(mean(null_out_parms$sd.pro)^2 + var(null_out_parms$sd.pro))))
   
   nchain = 3
   chain_seeds <- c(200,800,1400)
   init <- list()
   for(i in 1:nchain){
-    init[[i]] <- list(.RNG.name = "base::Wichmann-Hill",
+    init[[i]] <- list(sd.pro = runif(1, 0.01,0.2),
+                      .RNG.name = "base::Wichmann-Hill",
                       .RNG.seed = chain_seeds[i])
   }
   
@@ -546,7 +553,7 @@ for(s in 1:length(dates)){
   
   eval_ebu_null  <- coda.samples(model = j.model,
                                  variable.names = c("sd.pro"),
-                                 n.iter = 70000, n.burnin = 10000)
+                                 n.iter = 200000, n.burnin = 20000, thin = 200)
   
   # Extract the parameter esimates from the ebullition model run for dates[s] and traps[h]
   ########################################################################################
@@ -578,12 +585,12 @@ for(s in 1:length(dates)){
   
   # initial condition uncertainty
   null_ebu_forecast_1wk <- forecast_function(IC = rnorm(210,IC[,1], IC[,2]), ## sample IC
-                                        Q = parms$sd.pro,
-                                        ndays = as.numeric(ndays))
+                                             Q = parms$sd.pro,
+                                             ndays = as.numeric(ndays))
   
   null_ebu_forecast_2wk <- forecast_function(IC = ebu_forecast_1wk,  ## sample IC
-                                        Q = parms$sd.pro,
-                                        ndays = as.numeric(ndays))
+                                             Q = parms$sd.pro,
+                                             ndays = as.numeric(ndays))
   
   null_ebu_forecast <- rbind(null_ebu_forecast_1wk, null_ebu_forecast_2wk)%>% unname(.)%>%
     cbind(time,.)
@@ -607,7 +614,7 @@ for(s in 1:length(dates)){
   
   saveRDS(final_null_forecast_sumarized, paste0("./forecast_output/null_ebu_forecast_",dates[s],".rds"))
   
-  }
+}
 
 loop <- proc.time()-t1
 print(loop[3]/60)

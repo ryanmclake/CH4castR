@@ -1,0 +1,12 @@
+
+model {  
+   
+   pars ~ dmnorm(prior_mean,prior_inv_cov)
+   sd.pro ~ dlnorm(proc_mean, proc_prec)
+   
+   for(i in 2:N){
+      tau.pro[i] <- 1/((sd.pro*ndays[i])*(sd.pro*ndays[i]))
+      predX[i] <- pars[1] + C_mean[i]*pars[2] 
+      Y[i] ~ dnorm(predX[i],tau.pro[i])
+   }
+}  
