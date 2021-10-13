@@ -101,6 +101,8 @@ t1 <- proc.time()
 
 for(s in 1:length(dates)){
   
+  if (dates[s] == as.Date("2019-11-14")) break
+  
   full_ebullition_model_alltrap_jags <- full_ebullition_model_alltrap%>%
     select(time, ebu_rate, ebu_rate_se, hobo_temp, water_temp_dam)%>%
     filter(time <= dates[s])%>%
@@ -109,7 +111,6 @@ for(s in 1:length(dates)){
   for (i in colnames(full_ebullition_model_alltrap_jags[,c(3:5)])) {
     full_ebullition_model_alltrap_jags[,i] <- imputeTS::na_interpolation(full_ebullition_model_alltrap_jags[,i],option = "linear")   
   }
-  
   
   full_ebullition_model_alltrap_jags <- na.omit(full_ebullition_model_alltrap_jags)%>%
     mutate(ndays = difftime(time,lag(time)))
