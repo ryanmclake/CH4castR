@@ -19,7 +19,7 @@ Questions?  :email: ryan333@vt.edu and rqthomas@vt.edu
 
 Thank you for checking out CH<sub>4</sub>castR. Near-term, ecological forecasting with iterative model refitting and uncertainty partitioning has great promise for improving our understanding of ecological processes and the predictive skill of ecological models, but to date has been infrequently applied to predict biogeochemical fluxes. Bubble fluxes of methane (CH<sub>4</sub>) from aquatic sediments to the atmosphere (ebullition) dominate freshwater greenhouse gas emissions, but it remains unknown how best to make robust near-term CH<sub>4</sub> ebullition predictions using models. Near-term forecasting workflows have the potential to address several current challenges in predicting CH<sub>4</sub> ebullition rates, including: development of models that can be applied across time horizons and ecosystems, identification of the timescales for which predictions can provide useful information, and quantification of uncertainty in predictions.
 
-We developed and tested a near-term, iterative forecasting workflow of CH<sub>4</sub> ebullition rates in a small eutrophic reservoir throughout one open-water period. The workflow included the repeated updating of a CH<sub>4</sub> ebullition forecast model over time with newly-collected data via iterative model refitting. We compared the CH<sub>4</sub> forecasts from our workflow to both alternative forecasts generated without iterative model refitting and a persistence null model. This code provided is the workflow to generate foreacsts of CH<sub>4</sub> ebullition rates in a eutrophic reservoir in Virginia, USA. 
+We developed and tested a near-term, iterative forecasting workflow of CH<sub>4</sub> ebullition rates in a small eutrophic reservoir throughout one open-water period. The workflow included the repeated updating of a CH<sub>4</sub> ebullition forecast model over time with newly-collected data via iterative model refitting. We compared the CH<sub>4</sub> forecasts from our workflow to both alternative forecasts generated without iterative model refitting and a persistence null model. This code provided is our workflow to generate forecasts of CH<sub>4</sub> ebullition rates in a eutrophic reservoir in Virginia, USA. 
 
 
 ## Prerequisites
@@ -29,9 +29,8 @@ CH<sub>4</sub>castR has been tested across Windows and Mac OS.
 
 ### Jags will also need to be downloaded in order to run the forecasts
 Jags download for Mac users can be found here: https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Mac%20OS%20X/
-If you have a M1 arm 64 mac and are running the arm64 version of R 4.1.0. This will not work as JAGS is built on x86-64. 
-or context, I learned this the hard way. 
-Jags download for PC users can be  found here: https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/
+If you have a M1 arm 64 mac and are running the arm64 version of R 4.1.0, this code will not work as JAGS is built on x86-64 (I learned this the hard way!). 
+Jags download for PC users can be found here: https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/
 Jags download for Linux users can be found here: https://packages.qa.debian.org/j/jags.html
 
 ## Cloning NEON-forecast-code onto your computer (5 steps)
@@ -50,7 +49,7 @@ Jags download for Linux users can be found here: https://packages.qa.debian.org/
 ## Run Data Compiling Script
 1. You can either source the <i>01_Data_Compile.R</i> script or run through it incrementally. 
 
-### This script is setting up a few more configuarions to execute a forecast. This includes:
+### This script is setting up a few more configurations to execute a forecast. This includes:
 Getting default packages
 ``` r
 # Download packages
