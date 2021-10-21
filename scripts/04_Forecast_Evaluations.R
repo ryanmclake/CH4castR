@@ -208,19 +208,18 @@ dev.off()
 ### visualizations of the full ebullition forecasts (figure 3)
 
 ebullition_forecasts_wDA <- trap_all %>%
-  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
-  geom_point(data = ebu_raw, aes(x = time, y = exp(ebu_rate), fill = "midnightblue", color = "black"), inherit.aes = F, cex = 0.7, alpha = 0.3)+
-  geom_ribbon(aes(ymin = exp(lower_95), ymax = exp(upper_95)), alpha = 0.2, fill = "midnightblue") +
+  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_point(data = ebu_raw, aes(x = time, y = ebu_rate, fill = "midnightblue", color = "black"), inherit.aes = F, cex = 0.7, alpha = 0.3)+
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1.5, alpha = 1)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(ebu_rate), ymin = exp(ebu_rate)-exp(ebu_rate_se), ymax = exp(ebu_rate)+exp(ebu_rate_se)), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.9) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate,ymin = ebu_rate-ebu_rate_se,
+                                                            ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.9) +
   theme_bw()+
   labs(title = "A: Forecasts refitted with new data")+
-  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  ylab(expression(paste("Ebullition Rate log"["e"],"(mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")))+
-  scale_y_continuous(trans='log10',
-                     breaks=trans_breaks('log10', function(x) 10^x), limits=c(10^-3,10^5),
-                     labels=trans_format('log10', math_format(10^.x)))+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
+                  ylim = c(-5,10))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -232,19 +231,18 @@ ebullition_forecasts_wDA <- trap_all %>%
         legend.text = element_text(size = 16, color = "black"))
 
 ebullition_forecasts_nDA <- trap_all_static %>%
-  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
-  geom_point(data = ebu_raw, aes(x = time, y = exp(ebu_rate), fill = "midnightblue", color = "black"), inherit.aes = F, cex = 0.7, alpha = 0.3)+
-  geom_ribbon(aes(ymin = exp(lower_95), ymax = exp(upper_95)), alpha = 0.2, fill = "midnightblue") +
+  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_point(data = ebu_raw, aes(x = time, y = ebu_rate, fill = "midnightblue", color = "black"), inherit.aes = F, cex = 0.7, alpha = 0.3)+
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1.5, alpha = 1)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(ebu_rate), ymin = exp(ebu_rate)-exp(ebu_rate_se), ymax = exp(ebu_rate)+exp(ebu_rate_se)), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.9) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate,ymin = ebu_rate-ebu_rate_se,
+                                                            ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.9) +
   theme_bw()+
   labs(title = "B: Forecasts not refitted with new data")+
-  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  ylab(expression(paste("Ebullition Rate log"["e"],"(mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")))+
-  scale_y_continuous(trans='log10', 
-                     breaks=trans_breaks('log10', function(x) 10^x), limits=c(10^-3,10^5),
-                     labels=trans_format('log10', math_format(10^.x)))+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
+                  ylim = c(-5,10))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -256,19 +254,18 @@ ebullition_forecasts_nDA <- trap_all_static %>%
         legend.text = element_text(size = 16, color = "black"))
 
 null_forecasts <- trap_all_per_null %>%
-  ggplot(., aes(x = time, y = exp(mean), group = forecast_date)) +
-  geom_point(data = ebu_raw, aes(x = time, y = exp(ebu_rate), fill = "midnightblue", color = "black"), inherit.aes = F, cex = 0.7, alpha = 0.3)+
-  geom_ribbon(aes(ymin = exp(lower_95), ymax = exp(upper_95)), alpha = 0.2, fill = "midnightblue") +
+  ggplot(., aes(x = time, y = mean, group = forecast_date)) +
+  geom_point(data = ebu_raw, aes(x = time, y = ebu_rate, fill = "midnightblue", color = "black"), inherit.aes = F, cex = 0.7, alpha = 0.3)+
+  geom_ribbon(aes(ymin = lower_95, ymax = upper_95), alpha = 0.2, fill = "midnightblue") +
   geom_line(color = "purple4", size = 1.5, alpha = 1)+
-  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = exp(ebu_rate), ymin = exp(ebu_rate)-exp(ebu_rate_se), ymax = exp(ebu_rate)+exp(ebu_rate_se)), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.9) +
+  geom_pointrange(data = full_ebullition_model_alltrap, aes(x = time, y = ebu_rate,ymin = ebu_rate-ebu_rate_se,
+                                                            ymax = ebu_rate+ebu_rate_se), inherit.aes = FALSE, pch = 21, color = "black", fill = "red", cex = 0.9) +
   theme_bw()+
-  labs(title = "C: Persistence null forecasts")+
-  ylab(expression(paste("Ebullition Rate (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  labs(title = "C: Persistence null model forecasts")+
+  ylab(expression(paste("Ebullition Rate log"["e"],"(mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
-  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")))+
-  scale_y_continuous(trans='log10',
-                     breaks=trans_breaks('log10', function(x) 10^x), limits=c(10^-3,10^5),
-                     labels=trans_format('log10', math_format(10^.x)))+
+  coord_cartesian(xlim=c(as.Date("2019-05-25"),as.Date("2019-11-30")),
+                  ylim = c(-5,10))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -284,18 +281,14 @@ fig3
 ggsave(path = ".", filename = "./figures/FIGURE3_forecasts.jpg", width = 18, height = 12, device='jpg', dpi=400)
 
 uncertatinty <- trap_all%>% group_by(forecast_date)%>% filter(weeks > 0)%>%
-  ggplot(., aes(x = weeks, y = exp(sqrt(var)), group = weeks)) +
+  ggplot(., aes(x = weeks, y = sqrt(var), group = weeks)) +
   geom_boxplot(outlier.shape = NA)+
   geom_jitter(aes(colour=forecast_date), width=0.1)+
   theme_bw()+
-  scale_y_continuous(trans='log10',
-                     breaks=trans_breaks('log10', function(x) 10^x), limits=c(10^0.2,10^0.8),
-                     labels=trans_format('log10', math_format(10^.x)))+
   labs(title = "A: Forecast Uncertainty Between One and Two-Week Forecast Horizon")+
-  ylab(expression(paste("Forecast Uncertainty (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  ylab(expression(paste("Ebullition Rate log"["e"],"(mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("Weeks into future")+
   scale_x_continuous(breaks = c(1,2))+
-  coord_cartesian(xlim=c(0.5, 2.5))+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
         panel.grid.major.x = element_blank(),
@@ -310,17 +303,14 @@ uncertatinty <- trap_all%>% group_by(forecast_date)%>% filter(weeks > 0)%>%
 season_variance <- trap_all %>% group_by(forecast_date) %>%
   rename(`Weeks into future` = weeks)%>%filter(`Weeks into future`>0)%>%
   mutate(`Weeks into future` = as.character(`Weeks into future`))%>%
-  ggplot(., aes(x = time, y = exp(sqrt(var)), group = `Weeks into future`)) +
+  ggplot(., aes(x = time, y = sqrt(var), group = `Weeks into future`)) +
   geom_line(aes(color = `Weeks into future`), size = 3)+
-  geom_line(aes(x = time, y = exp(sqrt(var)), group = forecast_date), size = 0.3, color = "grey50")+
+  geom_line(aes(x = time, y = sqrt(var), group = forecast_date), size = 0.3, color = "grey50")+
   theme_bw()+
-  scale_y_continuous(trans='log10',
-                     breaks=trans_breaks('log10', function(x) 10^x),
-                     labels=trans_format('log10', math_format(10^.x)))+
   scale_color_viridis(option = "C", limits = factor(c(1,2)), 
                       breaks = c(1,2), discrete = T)+
   labs(title = "B: Forecast Uncertainty Across 2019 Forecast Period")+
-  ylab(expression(paste("Forecast Uncertainty (mg CH "[4]," ",m^-2,"",d^-1,")")))+
+  ylab(expression(paste("Ebullition Rate log"["e"],"(mg CH "[4]," ",m^-2,"",d^-1,")")))+
   xlab("")+
   theme(axis.text=element_text(size=15, color = "black"),
         axis.title=element_text(size=15, color = "black"),
@@ -380,7 +370,7 @@ AR <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_observe)) +
   geom_line(color = "black")+
   theme_bw()+
   labs(title = "A: Autoregressive parameter")+
-  ylab(expression(paste(beta[1])))+
+  ylab(expression(paste(beta[1], "  (log"["e"],"(mg CH "[4]," ",m^-2,"",d^-1,"))")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
@@ -398,7 +388,7 @@ temp <- ggplot(trap_all_parameters, aes(x = forecast_date, y = mean_temp)) +
   geom_line(color = "black")+
   theme_bw()+
   labs(title = "B: Temperature parameter")+
-  ylab(expression(paste(beta[2])))+
+  ylab(expression(paste(beta[2], "  (°C)")))+
   xlab("")+
   coord_cartesian(xlim=c(as.Date("2019-06-17"),as.Date("2019-11-08")))+
   theme(axis.text=element_text(size=15, color = "black"),
