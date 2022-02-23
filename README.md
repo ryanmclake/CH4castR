@@ -15,7 +15,7 @@ Questions?  :email: ryan333@vt.edu and rqthomas@vt.edu
 
 ## RUN CH4castR
 Follow the myBinder link:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ryanmclake/CH4castR.git/HEAD)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/ryanmclake/CH4castR/HEAD?urlpath=rstudio)
 
 -----
 
